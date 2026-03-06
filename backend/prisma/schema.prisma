@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id          Int      @id @default(autoincrement())
+  username    String   @unique
+  displayName String
+  email       String
+  role        String   @default("user")
+  itCode      String?
+  createdAt   DateTime @default(now())
+}
+
+model Project {
+  id            Int      @id @default(autoincrement())
+  projectId     String   @unique
+  projectName   String
+  pm            String
+  dtLead        String
+  itLead        String
+  aiRelated     String   @default("No")
+  comments      String?
+  highFocus     Boolean  @default(false)
+  requestStatus String?
+  createdBy     String
+  createdAt     DateTime @default(now())
+  changedBy     String?
+  changedAt     DateTime?
+}
+
+model EARequest {
+  id               Int      @id @default(autoincrement())
+  requestId        String   @unique
+  requestName      String   @default("")
+  requestStatus    String   @default("Draft")
+  reviewResult     String   @default("")
+  reviewScope      String   @default("All")
+  projectId        String
+  projectName      String
+  wsName           String?
+  requestor        String
+  assignedReviewer String?
+  pm               String
+  dtLead           String?
+  itLead           String?
+  organization     String?
+  changedBy        String
+  changedAt        DateTime @default(now())
+  createdBy        String
+  createdAt        DateTime @default(now())
+}
+
+model Meeting {
+  id           Int      @id @default(autoincrement())
+  meetingNo    Int      @unique
+  requestName  String
+  projectId    String
+  projectName  String
+  meetingTitle String
+  meetingAgent String?
+  startTime    DateTime
+  endTime      DateTime
+  createdBy    String
+  createdAt    DateTime @default(now())
+}
+
+model Action {
+  id                Int      @id @default(autoincrement())
+  actionId          Int      @unique
+  requestName       String
+  projectId         String
+  projectName       String
+  actionTitle       String
+  type              String   @default("Mandatory")
+  priority          String   @default("Medium")
+  requestedBy       String
+  assignee          String
+  startDate         DateTime?
+  closeDate         DateTime?
+  applicableDomain  String?
+  actionDescription String?
+  dueDate           DateTime?
+  status            String   @default("Open")
+  createdBy         String
+  createdAt         DateTime @default(now())
+}
+
+model Schedule {
+  id            Int      @id @default(autoincrement())
+  scheduleNo    Int      @unique
+  status        String   @default("Available")
+  scheduleTitle String
+  startTime     DateTime
+  endTime       DateTime
+  duration      Int
+  owner         String
+  createdBy     String
+  createdAt     DateTime @default(now())
+}
+
+model Application {
+  id                       Int     @id @default(autoincrement())
+  applicationId            String
+  applicationName          String
+  applicationOwnership     String
+  applicationSolutionOwner String
+  applicationDTOwner       String
+  applicationStatus        String  @default("Planned")
+  bcId                     String
+  bcName                   String?
+  applicationClassification String?
+  functionValueChain       String?
+  domainL1                 String?
+  subDomainL2              String?
+  version                  String?
+}
+
+model BCPFMasterData {
+  id               Int    @id @default(autoincrement())
+  bcId             String @unique
+  bcName           String
+  domainL1         String
+  subDomainL2      String
+  capabilityGroupL3 String @default("")
+  level            Int
+  version          String @default("1.4")
+}
+
+model TechnologyStack {
+  id          Int     @id @default(autoincrement())
+  name        String
+  category    String
+  vendor      String
+  version     String
+  status      String  @default("Active")
+  description String?
+  owner       String?
+}
+
+model EAReviewLog {
+  id            Int      @id @default(autoincrement())
+  projectId     String
+  projectName   String
+  user          String
+  operationTime DateTime
+  action        String
+  comments      String?
+}
+
+model Certification {
+  id              Int       @id @default(autoincrement())
+  certificationId String    @unique
+  name            String
+  status          String    @default("Active")
+  type            String
+  applicant       String
+  approvedBy      String?
+  validFrom       DateTime?
+  validTo         DateTime?
+}
