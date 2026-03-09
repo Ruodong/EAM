@@ -231,6 +231,7 @@ export function CapabilityDashboard({ capabilities, domains, applications }: Cap
                               meta?.ownedBy ? `Business Owner: ${meta.ownedBy}` : '',
                               meta?.appOwnerTower ? `Owner Tower: ${meta.appOwnerTower}` : '',
                               meta?.bizFunction ? `Biz Function: ${meta.bizFunction}` : '',
+                              meta?.appDescription ? `\nDescription: ${meta.appDescription}` : '',
                             ].filter(Boolean).join('\n');
 
                             return (

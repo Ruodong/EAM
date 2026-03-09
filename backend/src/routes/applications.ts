@@ -96,6 +96,7 @@ router.get('/bcm', async (req: Request, res: Response) => {
               COALESCE(c.app_owner_domain, '') as app_owner_domain,
               COALESCE(c.app_dt_owner, '') as app_dt_owner,
               COALESCE(c.app_operation_owner, '') as app_operation_owner,
+              COALESCE(NULLIF(a.app_description,''), c.short_description, '') as app_description,
               m.bc_id, m.bc_name, m.lv1_domain, m.lv2_sub_domain,
               m.lv3_capability_group, m.data_version, m.level
        FROM eam.biz_cap_map b
@@ -124,6 +125,7 @@ router.get('/bcm', async (req: Request, res: Response) => {
       appOwnerDomain:   r.app_owner_domain || '',
       appDtOwner:       r.app_dt_owner || '',
       appOperationOwner: r.app_operation_owner || '',
+      appDescription:   r.app_description || '',
       bcId:             r.bc_id,
       bcName:           r.bc_name,
       domainL1:         r.lv1_domain,
@@ -280,6 +282,7 @@ router.get('/bcm/visualization', async (req: Request, res: Response) => {
               COALESCE(c.app_owner_tower, '') as app_owner_tower,
               COALESCE(c.app_owner_domain, '') as app_owner_domain,
               COALESCE(c.app_dt_owner, '') as app_dt_owner,
+              COALESCE(NULLIF(a.app_description,''), c.short_description, '') as app_description,
               COALESCE(m.geo, '') as geo,
               m.bc_id, m.bc_name,
               COALESCE(m.bc_name_cn, '') as bc_name_cn,
@@ -377,6 +380,7 @@ router.get('/bcm/visualization', async (req: Request, res: Response) => {
         appOwnerDomain: row.app_owner_domain || '', appDtOwner: row.app_dt_owner || '',
         portfolioMgt: row.portfolio_mgt, appSolutionType: row.app_solution_type,
         appClassification: row.app_classification, appStatus: row.app_status,
+        appDescription: row.app_description || '',
         bizFunction: row.biz_function, geo: row.geo, capabilities,
       });
     }

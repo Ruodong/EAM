@@ -29,6 +29,7 @@ export interface Application {
   readonly appOwnerTower: string;
   readonly appOwnerDomain: string;
   readonly appDtOwner: string;
+  readonly appDescription: string;
   readonly portfolioMgt: string;
   readonly appSolutionType: string;
   readonly appClassification: string;
