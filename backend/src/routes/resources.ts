@@ -32,7 +32,12 @@ router.get('/', async (req: Request, res: Response) => {
     if (country) where.country  = { contains: country as string, mode: 'insensitive' };
     if (tier1Org) where.tier_1_org = { contains: tier1Org as string, mode: 'insensitive' };
 
-    const orderBy: any = { [(sortField as string) || 'name']: sortOrder || 'asc' };
+    const resFieldMap: Record<string, string> = {
+      itcode: 'itcode', name: 'name', email: 'email', country: 'country',
+      workerType: 'worker_type', tier1Org: 'tier_1_org',
+    };
+    const dbSortField = (sortField && resFieldMap[sortField]) || 'name';
+    const orderBy: any = { [dbSortField]: sortOrder || 'asc' };
 
     const [data, total] = await Promise.all([
       prisma.resource_pool.findMany({ where, orderBy, skip, take: pageSize }),

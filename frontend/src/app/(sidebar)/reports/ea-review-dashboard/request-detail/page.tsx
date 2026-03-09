@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
@@ -140,7 +140,7 @@ function AiDetailDrawer({ detail, onClose }: { detail: any; onClose: () => void 
   );
 }
 
-export default function DashboardRequestDetailPage() {
+function DashboardRequestDetailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
@@ -415,5 +415,13 @@ export default function DashboardRequestDetailPage() {
       {/* AI Detail Drawer */}
       {aiDetail && <AiDetailDrawer detail={aiDetail} onClose={() => setAiDetail(null)} />}
     </div>
+  );
+}
+
+export default function DashboardRequestDetailPage() {
+  return (
+    <Suspense fallback={<div className="p-6"><div className="animate-pulse space-y-4"><div className="h-6 bg-gray-200 rounded w-1/3" /><div className="h-40 bg-gray-200 rounded" /></div></div>}>
+      <DashboardRequestDetailContent />
+    </Suspense>
   );
 }

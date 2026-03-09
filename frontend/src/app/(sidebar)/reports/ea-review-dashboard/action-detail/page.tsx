@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
@@ -40,7 +40,7 @@ function fmtDate(v?: string | null) {
   return new Date(v).toLocaleDateString();
 }
 
-export default function DashboardActionDetailPage() {
+function DashboardActionDetailContent() {
   const searchParams = useSearchParams();
   const actionNo = searchParams.get('actionNo');
   const router = useRouter();
@@ -145,5 +145,13 @@ export default function DashboardActionDetailPage() {
         <div className="text-center py-6 text-sm text-text-secondary">No audit logs</div>
       </Section>
     </div>
+  );
+}
+
+export default function DashboardActionDetailPage() {
+  return (
+    <Suspense fallback={<div className="p-6"><div className="animate-pulse space-y-4"><div className="h-6 bg-gray-200 rounded w-1/3" /><div className="h-40 bg-gray-200 rounded" /></div></div>}>
+      <DashboardActionDetailContent />
+    </Suspense>
   );
 }

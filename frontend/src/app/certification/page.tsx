@@ -17,11 +17,6 @@ const searchFields: SearchField[] = [
     { label: 'TOGAF', value: 'TOGAF' },
   ]},
   { key: 'itCode', label: 'IT Code', type: 'text', placeholder: 'IT Code' },
-  { key: 'status', label: 'Status', type: 'select', options: [
-    { label: 'Active', value: 'Active' },
-    { label: 'Expired', value: 'Expired' },
-    { label: 'Pending', value: 'Pending' },
-  ]},
 ];
 
 export default function CertificationPage() {

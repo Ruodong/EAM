@@ -8,24 +8,33 @@ const router = Router();
 function mapCert(c: any) {
   return {
     ...c,
-    certId: c.certificationId,
-    issuedDate: c.validFrom,
-    expiryDate: c.validTo,
-    ownerName: c.applicant,
+    certId: c.simple_id,
+    name: c.exam_name,
+    type: c.certificate_type,
+    itCode: c.itcode,
+    issuedDate: c.issue_date,
+    expiryDate: c.expiration_date,
+    ownerName: c.user_name,
   };
 }
 
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { page, pageSize, sortField, sortOrder, skip } = getPaginationParams(req);
-    const { name, status, type } = req.query;
+    const { name, type, itCode, certId } = req.query;
 
     const where: any = {};
-    if (name) where.name = { contains: name as string, mode: 'insensitive' };
-    if (status) where.status = status as string;
-    if (type) where.type = type as string;
+    if (name) where.exam_name = { contains: name as string, mode: 'insensitive' };
+    if (type) where.certificate_type = type as string;
+    if (itCode) where.itcode = { contains: itCode as string, mode: 'insensitive' };
+    if (certId) where.simple_id = { contains: certId as string, mode: 'insensitive' };
 
-    const orderBy: any = sortField ? { [sortField]: sortOrder } : { id: 'desc' };
+    const certFieldMap: Record<string, string> = {
+      certId: 'simple_id', name: 'exam_name', type: 'certificate_type',
+      itCode: 'itcode', ownerName: 'user_name', issuedDate: 'issue_date', expiryDate: 'expiration_date',
+    };
+    const dbSortField = (sortField && certFieldMap[sortField]) || 'id';
+    const orderBy: any = { [dbSortField]: sortOrder || 'desc' };
 
     const [data, total] = await Promise.all([
       prisma.certification.findMany({ where, orderBy, skip, take: pageSize }),

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -12,7 +12,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { useT } from '@/lib/locale';
 import { ArrowLeft } from 'lucide-react';
 
-export default function DashboardMeetingListPage() {
+function DashboardMeetingListContent() {
   const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -147,5 +147,13 @@ export default function DashboardMeetingListPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function DashboardMeetingListPage() {
+  return (
+    <Suspense fallback={<div className="p-6"><div className="animate-pulse space-y-4"><div className="h-6 bg-gray-200 rounded w-1/3" /><div className="h-40 bg-gray-200 rounded" /></div></div>}>
+      <DashboardMeetingListContent />
+    </Suspense>
   );
 }

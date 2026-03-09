@@ -39,7 +39,12 @@ router.get('/', async (req: Request, res: Response) => {
     if (workerType) where.worker_type = workerType as string;
     if (country)    where.country     = { contains: country as string, mode: 'insensitive' };
 
-    const orderBy: any = { [(sortField as string) || 'name']: sortOrder || 'asc' };
+    const memFieldMap: Record<string, string> = {
+      itcode: 'itcode', name: 'name', email: 'email', country: 'country',
+      workerType: 'worker_type', primarySkill: 'primary_skill', jobRole: 'job_role',
+    };
+    const dbSortField = (sortField && memFieldMap[sortField]) || 'name';
+    const orderBy: any = { [dbSortField]: sortOrder || 'asc' };
 
     const [data, total] = await Promise.all([
       prisma.eam_bigea_team_members.findMany({ where, orderBy, skip, take: pageSize }),
