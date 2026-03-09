@@ -20,6 +20,7 @@ import { dictOptionRoutes } from './routes/dict-options';
 import { meetingDeckRoutes } from './routes/meeting-decks';
 import { reportRoutes } from './routes/reports';
 import { exportRoutes } from './routes/export';
+import { cmdbRoutes } from './routes/cmdb';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -50,6 +51,7 @@ app.use('/api/dict-options', dictOptionRoutes);
 app.use('/api/meeting-decks', meetingDeckRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/cmdb', cmdbRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

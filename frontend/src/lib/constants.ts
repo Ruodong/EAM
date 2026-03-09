@@ -7,6 +7,7 @@ import {
   Layers,
   BookOpen,
   BarChart3,
+  Database,
   Settings,
   HelpCircle,
   Database,
@@ -44,6 +45,7 @@ export const sidebarNavItems: NavItem[] = [
       { label: 'Business Capability Mapping', href: '/app-management/bcm', icon: LayoutGrid },
       { label: 'Business Capability Analysis', href: '/app-management/bc-visualization', icon: LayoutGrid },
       { label: 'BCPF Master Data', href: '/app-management/bcpf', icon: LayoutGrid },
+      { label: 'Application Master Data', href: '/app-management/cmdb', icon: Database },
     ],
   },
   {
