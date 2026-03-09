@@ -5,6 +5,16 @@ import { getPaginationParams, buildPaginatedResponse } from '../middleware/pagin
 const prisma = new PrismaClient();
 const router = Router();
 
+/** Strip PostgreSQL array literal braces, e.g. '{"Business Application"}' → 'Business Application' */
+function cleanPgArray(v: unknown): string {
+  if (!v) return '';
+  const s = String(v);
+  if (s.startsWith('{') && s.endsWith('}')) {
+    return s.slice(1, -1).replace(/"/g, '');
+  }
+  return s;
+}
+
 function mapRow(r: any) {
   return {
     appId:                  r.app_id ?? '',
@@ -22,8 +32,8 @@ function mapRow(r: any) {
     appOperationOwnerTower: r.app_operation_owner_tower ?? '',
     appOperationOwnerDomain: r.app_operation_owner_domain ?? '',
     portfolioMgt:           r.portfolio_mgt ?? '',
-    appClassification:      r.app_classification ?? '',
-    appSolutionType:        r.app_solution_type ?? '',
+    appClassification:      cleanPgArray(r.app_classification),
+    appSolutionType:        cleanPgArray(r.app_solution_type),
     serviceArea:            r.u_service_area ?? '',
     patchLevel:             r.patch_level ?? '',
     updateAt:               r.update_at,

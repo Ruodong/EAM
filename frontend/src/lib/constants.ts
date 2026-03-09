@@ -10,7 +10,6 @@ import {
   Database,
   Settings,
   HelpCircle,
-  Database,
   Shield,
   Server,
 } from 'lucide-react';
