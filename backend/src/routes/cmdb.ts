@@ -59,17 +59,23 @@ const SORT_COLUMNS: Record<string, string> = {
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { page, pageSize, skip } = getPaginationParams(req);
-    const { appId, name, status, ownerTower, ownedBy, portfolio, sortKey, sortDir } = req.query;
+    const { appId, name, status, ownerTower, ownedBy, portfolio,
+            classification, solutionType, serviceArea, ownership,
+            sortKey, sortDir } = req.query;
 
     const conditions: string[] = [];
     const esc = (v: string) => v.replace(/'/g, "''");
 
-    if (appId)      conditions.push(`app_id ILIKE '%${esc(appId as string)}%'`);
-    if (name)       conditions.push(`(name ILIKE '%${esc(name as string)}%' OR app_full_name ILIKE '%${esc(name as string)}%')`);
-    if (status)     conditions.push(`u_status ILIKE '%${esc(status as string)}%'`);
-    if (ownerTower) conditions.push(`app_owner_tower ILIKE '%${esc(ownerTower as string)}%'`);
-    if (ownedBy)    conditions.push(`owned_by ILIKE '%${esc(ownedBy as string)}%'`);
-    if (portfolio)  conditions.push(`portfolio_mgt ILIKE '%${esc(portfolio as string)}%'`);
+    if (appId)           conditions.push(`app_id ILIKE '%${esc(appId as string)}%'`);
+    if (name)            conditions.push(`(name ILIKE '%${esc(name as string)}%' OR app_full_name ILIKE '%${esc(name as string)}%')`);
+    if (status)          conditions.push(`u_status ILIKE '%${esc(status as string)}%'`);
+    if (ownerTower)      conditions.push(`app_owner_tower ILIKE '%${esc(ownerTower as string)}%'`);
+    if (ownedBy)         conditions.push(`owned_by ILIKE '%${esc(ownedBy as string)}%'`);
+    if (portfolio)       conditions.push(`portfolio_mgt ILIKE '%${esc(portfolio as string)}%'`);
+    if (classification)  conditions.push(`app_classification ILIKE '%${esc(classification as string)}%'`);
+    if (solutionType)    conditions.push(`app_solution_type ILIKE '%${esc(solutionType as string)}%'`);
+    if (serviceArea)     conditions.push(`u_service_area ILIKE '%${esc(serviceArea as string)}%'`);
+    if (ownership)       conditions.push(`app_ownership ILIKE '%${esc(ownership as string)}%'`);
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 

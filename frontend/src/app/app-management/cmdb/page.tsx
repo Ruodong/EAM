@@ -41,7 +41,7 @@ const searchFields: SearchField[] = [
   { key: 'appId', label: 'App ID', type: 'text', placeholder: 'Application ID' },
   { key: 'name', label: 'Name', type: 'text', placeholder: 'Name or Full Name' },
   {
-    key: 'status', label: 'Status', type: 'select', placeholder: 'All Statuses',
+    key: 'status', label: 'Status', type: 'select',
     options: [
       { label: 'Active', value: 'Active' },
       { label: 'Decommissioned', value: 'Decommissioned' },
@@ -49,10 +49,50 @@ const searchFields: SearchField[] = [
       { label: 'Retain', value: 'Retain' },
     ],
   },
+  {
+    key: 'classification', label: 'Classification', type: 'select',
+    options: [
+      { label: 'Business Application', value: 'Business Application' },
+      { label: 'Data', value: 'Data' },
+      { label: 'IT Management Tool', value: 'IT Management Tool' },
+      { label: 'Others', value: 'Others' },
+      { label: 'Technical Platform', value: 'Technical Platform' },
+      { label: 'Workplace Application', value: 'Workplace Application' },
+    ],
+  },
+  {
+    key: 'solutionType', label: 'Solution Type', type: 'select',
+    options: [
+      { label: 'Package', value: 'Package' },
+      { label: 'Package+Customization', value: 'Package+Customization' },
+      { label: 'SaaS', value: 'SaaS' },
+      { label: 'SaaS+Customization', value: 'SaaS+Customization' },
+      { label: 'Self-Development', value: 'Self-Development' },
+    ],
+  },
+  {
+    key: 'serviceArea', label: 'Service Area', type: 'select',
+    options: [
+      'Cloud Services', 'Data', 'Development', 'Engineering', 'Eng - Hardware',
+      'Eng - Software', 'Finance', 'Foundation', 'HR', 'Infrastructure & Cloud Service',
+      'Integration', 'IT Management Tool', 'IT Operation Tools & Platform', 'Legal',
+      'Legal & Security', 'Marketing', 'Marketing & Sales', 'Monitoring', 'Others',
+      'Product', 'Product Development', 'Sales', 'Security', 'Service', 'Services',
+      'Supply Chain', 'Workplace', 'Workplace Application',
+    ].map(v => ({ label: v, value: v })),
+  },
+  {
+    key: 'ownership', label: 'App Ownership', type: 'select',
+    options: [
+      { label: 'CIO/CDTO', value: 'CIO/CDTO' },
+      { label: 'LPL', value: 'LPL' },
+      { label: 'Shadow', value: 'Shadow' },
+    ],
+  },
   { key: 'ownerTower', label: 'Owner Tower', type: 'text', placeholder: 'Owner Tower' },
   { key: 'ownedBy', label: 'Owned By', type: 'text', placeholder: 'Owned By' },
   {
-    key: 'portfolio', label: 'Portfolio', type: 'select', placeholder: 'All Portfolios',
+    key: 'portfolio', label: 'Portfolio', type: 'select',
     options: [
       { label: 'Invest', value: 'Invest' },
       { label: 'Migrate', value: 'Migrate' },
