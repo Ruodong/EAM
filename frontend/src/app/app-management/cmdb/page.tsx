@@ -85,11 +85,19 @@ export default function CmdbApplicationPage() {
   const [pageSize, setPageSize] = useState(20);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<string>('appId');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   const { data, isLoading } = useQuery({
-    queryKey: ['cmdb', page, pageSize, filters],
-    queryFn: () => api.get<any>('/cmdb', { page, pageSize, ...filters }),
+    queryKey: ['cmdb', page, pageSize, filters, sortKey, sortDir],
+    queryFn: () => api.get<any>('/cmdb', { page, pageSize, ...filters, sortKey, sortDir }),
   });
+
+  const handleSort = (key: string, direction: 'asc' | 'desc') => {
+    setSortKey(key);
+    setSortDir(direction);
+    setPage(1);
+  };
 
   const detail = data?.data?.find((r: CmdbApp) => r.appId === selectedId) as CmdbApp | undefined;
 
@@ -126,6 +134,9 @@ export default function CmdbApplicationPage() {
         rowKey="appId"
         loading={isLoading}
         showColumnSettings
+        sortKey={sortKey}
+        sortDirection={sortDir}
+        onSort={handleSort}
         onRowClick={(row: CmdbApp) => setSelectedId(row.appId)}
       />
 

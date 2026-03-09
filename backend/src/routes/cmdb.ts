@@ -41,13 +41,25 @@ function mapRow(r: any) {
   };
 }
 
+/** Map frontend camelCase column keys to DB column names (whitelist for SQL safety) */
+const SORT_COLUMNS: Record<string, string> = {
+  appId: 'app_id',
+  name: 'name',
+  appFullName: 'app_full_name',
+  status: 'u_status',
+  appOwnerTower: 'app_owner_tower',
+  ownedBy: 'owned_by',
+  portfolioMgt: 'portfolio_mgt',
+  appClassification: 'app_classification',
+};
+
 /**
- * GET / — paginated list with search
+ * GET / — paginated list with search & sort
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { page, pageSize, skip } = getPaginationParams(req);
-    const { appId, name, status, ownerTower, ownedBy, portfolio } = req.query;
+    const { appId, name, status, ownerTower, ownedBy, portfolio, sortKey, sortDir } = req.query;
 
     const conditions: string[] = [];
     const esc = (v: string) => v.replace(/'/g, "''");
@@ -61,6 +73,10 @@ router.get('/', async (req: Request, res: Response) => {
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
+    const dbCol = SORT_COLUMNS[sortKey as string] ?? 'app_id';
+    const dir = sortDir === 'desc' ? 'DESC' : 'ASC';
+    const orderBy = `ORDER BY (COALESCE(${dbCol},'') = '') ASC, ${dbCol} ${dir} NULLS LAST`;
+
     const countResult = await prisma.$queryRawUnsafe<[{ count: bigint }]>(
       `SELECT count(*) as count FROM eam.cmdb_application ${where}`
     );
@@ -68,7 +84,7 @@ router.get('/', async (req: Request, res: Response) => {
 
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `SELECT * FROM eam.cmdb_application ${where}
-       ORDER BY app_id ASC
+       ${orderBy}
        LIMIT ${pageSize} OFFSET ${skip}`
     );
 
