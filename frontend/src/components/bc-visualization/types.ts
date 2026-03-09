@@ -21,9 +21,14 @@ export interface CapNode {
 export interface Application {
   readonly appId: string;
   readonly appName: string;
+  readonly appFullName: string;
   readonly appOwnership: string;
   readonly appSolutionOwner: string;
   readonly appItOwner: string;
+  readonly ownedBy: string;
+  readonly appOwnerTower: string;
+  readonly appOwnerDomain: string;
+  readonly appDtOwner: string;
   readonly portfolioMgt: string;
   readonly appSolutionType: string;
   readonly appClassification: string;

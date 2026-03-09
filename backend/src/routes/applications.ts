@@ -59,7 +59,7 @@ router.get('/bcm', async (req: Request, res: Response) => {
 
     const conditions: string[] = [];
     if (appId)       conditions.push(`b.app_id ILIKE '%${(appId as string).replace(/'/g, "''")}%'`);
-    if (name)        conditions.push(`a.app_name ILIKE '%${(name as string).replace(/'/g, "''")}%'`);
+    if (name)        conditions.push(`COALESCE(NULLIF(a.app_name,''), c.name, '') ILIKE '%${(name as string).replace(/'/g, "''")}%'`);
     if (domainL1)    conditions.push(`m.lv1_domain ILIKE '%${(domainL1 as string).replace(/'/g, "''")}%'`);
     if (subDomainL2) conditions.push(`m.lv2_sub_domain ILIKE '%${(subDomainL2 as string).replace(/'/g, "''")}%'`);
     if (bcName)      conditions.push(`m.bc_name ILIKE '%${(bcName as string).replace(/'/g, "''")}%'`);
@@ -67,35 +67,40 @@ router.get('/bcm', async (req: Request, res: Response) => {
 
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // When filtering by app name, need to join project_app in the count query too
-    const needsAppJoin = !!name;
-    const countJoin = needsAppJoin ? 'LEFT JOIN eam.project_app a ON b.app_id = a.app_id' : '';
+    const appJoins = `LEFT JOIN eam.project_app a ON b.app_id = a.app_id
+       LEFT JOIN eam.cmdb_application c ON b.app_id = c.app_id`;
 
     const countResult = await prisma.$queryRawUnsafe<[{ count: bigint }]>(
       `SELECT count(*) as count
        FROM eam.biz_cap_map b
        JOIN eam.bcpf_master_data m ON b.bcpf_master_id = m.id
-       ${countJoin}
+       ${appJoins}
        ${whereClause}`
     );
     const total = Number(countResult[0].count);
 
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `SELECT b.id, b.app_id,
-              COALESCE(a.app_name, '') as app_name,
-              COALESCE(a.app_it_owner, '') as app_it_owner,
-              COALESCE(a.current_state, '') as current_state,
-              COALESCE(a.app_ownership, '') as app_ownership,
-              COALESCE(a.app_solution_owner, '') as app_solution_owner,
-              COALESCE(a.portfolio_mgt, '') as portfolio_mgt,
-              COALESCE(a.app_solution_type, '') as app_solution_type,
-              COALESCE(a.app_classification, '') as app_classification,
+              COALESCE(NULLIF(a.app_name,''), c.name, '') as app_name,
+              COALESCE(NULLIF(a.app_it_owner,''), c.app_it_owner, '') as app_it_owner,
+              COALESCE(NULLIF(a.current_state,''), c.u_status, '') as current_state,
+              COALESCE(NULLIF(a.app_ownership,''), c.app_ownership, '') as app_ownership,
+              COALESCE(NULLIF(a.app_solution_owner,''), c.owned_by, '') as app_solution_owner,
+              COALESCE(NULLIF(a.portfolio_mgt,''), c.portfolio_mgt, '') as portfolio_mgt,
+              COALESCE(NULLIF(a.app_solution_type,''), c.app_solution_type, '') as app_solution_type,
+              COALESCE(NULLIF(a.app_classification,''), c.app_classification, '') as app_classification,
               COALESCE(a.business_function, '') as business_function,
+              COALESCE(c.app_full_name, '') as app_full_name,
+              COALESCE(c.owned_by, '') as owned_by,
+              COALESCE(c.app_owner_tower, '') as app_owner_tower,
+              COALESCE(c.app_owner_domain, '') as app_owner_domain,
+              COALESCE(c.app_dt_owner, '') as app_dt_owner,
+              COALESCE(c.app_operation_owner, '') as app_operation_owner,
               m.bc_id, m.bc_name, m.lv1_domain, m.lv2_sub_domain,
               m.lv3_capability_group, m.data_version, m.level
        FROM eam.biz_cap_map b
        JOIN eam.bcpf_master_data m ON b.bcpf_master_id = m.id
-       LEFT JOIN eam.project_app a ON b.app_id = a.app_id
+       ${appJoins}
        ${whereClause}
        ORDER BY b.app_id ASC, m.bc_id ASC
        LIMIT ${pageSize} OFFSET ${skip}`
@@ -105,14 +110,20 @@ router.get('/bcm', async (req: Request, res: Response) => {
       id:               r.id,
       appId:            r.app_id,
       appName:          r.app_name || '',
+      appFullName:      r.app_full_name || '',
       appItOwner:       r.app_it_owner || '',
       status:           r.current_state || '',
       appOwnership:     r.app_ownership || '',
       appSolutionOwner: r.app_solution_owner || '',
+      ownedBy:          r.owned_by || '',
       portfolioMgt:     r.portfolio_mgt || '',
       appSolutionType:  r.app_solution_type || '',
       appClassification: r.app_classification || '',
       businessFunction: r.business_function || '',
+      appOwnerTower:    r.app_owner_tower || '',
+      appOwnerDomain:   r.app_owner_domain || '',
+      appDtOwner:       r.app_dt_owner || '',
+      appOperationOwner: r.app_operation_owner || '',
       bcId:             r.bc_id,
       bcName:           r.bc_name,
       domainL1:         r.lv1_domain,
@@ -255,15 +266,20 @@ router.get('/bcm/visualization', async (req: Request, res: Response) => {
 
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `SELECT b.app_id,
-              COALESCE(a.app_name, b.app_id) as app_name,
-              COALESCE(a.app_ownership, '') as app_ownership,
-              COALESCE(a.app_solution_owner, '') as app_solution_owner,
-              COALESCE(a.app_it_owner, '') as app_it_owner,
-              COALESCE(a.portfolio_mgt, '') as portfolio_mgt,
-              COALESCE(a.app_solution_type, '') as app_solution_type,
-              COALESCE(a.app_classification, '') as app_classification,
-              COALESCE(a.current_state, '') as app_status,
+              COALESCE(NULLIF(a.app_name,''), c.name, b.app_id) as app_name,
+              COALESCE(c.app_full_name, '') as app_full_name,
+              COALESCE(NULLIF(a.app_ownership,''), c.app_ownership, '') as app_ownership,
+              COALESCE(NULLIF(a.app_solution_owner,''), c.owned_by, '') as app_solution_owner,
+              COALESCE(NULLIF(a.app_it_owner,''), c.app_it_owner, '') as app_it_owner,
+              COALESCE(NULLIF(a.portfolio_mgt,''), c.portfolio_mgt, '') as portfolio_mgt,
+              COALESCE(NULLIF(a.app_solution_type,''), c.app_solution_type, '') as app_solution_type,
+              COALESCE(NULLIF(a.app_classification,''), c.app_classification, '') as app_classification,
+              COALESCE(NULLIF(a.current_state,''), c.u_status, '') as app_status,
               COALESCE(a.business_function, '') as biz_function,
+              COALESCE(c.owned_by, '') as owned_by,
+              COALESCE(c.app_owner_tower, '') as app_owner_tower,
+              COALESCE(c.app_owner_domain, '') as app_owner_domain,
+              COALESCE(c.app_dt_owner, '') as app_dt_owner,
               COALESCE(m.geo, '') as geo,
               m.bc_id, m.bc_name,
               COALESCE(m.bc_name_cn, '') as bc_name_cn,
@@ -274,6 +290,7 @@ router.get('/bcm/visualization', async (req: Request, res: Response) => {
        FROM eam.biz_cap_map b
        JOIN eam.bcpf_master_data m ON b.bcpf_master_id = m.id
        LEFT JOIN eam.project_app a ON b.app_id = a.app_id
+       LEFT JOIN eam.cmdb_application c ON b.app_id = c.app_id
        ${versionFilter}
        ORDER BY m.lv1_domain, m.lv2_sub_domain, m.bc_id, b.app_id`
     );
@@ -353,8 +370,11 @@ router.get('/bcm/visualization', async (req: Request, res: Response) => {
         }
       }
       applications.push({
-        appId: row.app_id, appName: row.app_name, appOwnership: row.app_ownership,
+        appId: row.app_id, appName: row.app_name, appFullName: row.app_full_name || '',
+        appOwnership: row.app_ownership,
         appSolutionOwner: row.app_solution_owner, appItOwner: row.app_it_owner,
+        ownedBy: row.owned_by || '', appOwnerTower: row.app_owner_tower || '',
+        appOwnerDomain: row.app_owner_domain || '', appDtOwner: row.app_dt_owner || '',
         portfolioMgt: row.portfolio_mgt, appSolutionType: row.app_solution_type,
         appClassification: row.app_classification, appStatus: row.app_status,
         bizFunction: row.biz_function, geo: row.geo, capabilities,

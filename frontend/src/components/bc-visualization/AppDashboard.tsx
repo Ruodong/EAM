@@ -85,9 +85,17 @@ export function AppDashboard({ applications }: AppDashboardProps) {
           <div key={app.appId} className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <h3 className="text-sm font-semibold text-gray-900">{app.appName}</h3>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {app.appName}
+                  {app.appFullName && app.appFullName !== app.appName && (
+                    <span className="ml-1.5 font-normal text-gray-400">({app.appFullName})</span>
+                  )}
+                </h3>
                 <p className="text-xs text-gray-500">
-                  {app.appId} &middot; {app.appSolutionOwner || 'No owner'} &middot; {app.appSolutionType}
+                  {app.appId}
+                  {app.appOwnerTower && <> &middot; {app.appOwnerTower}</>}
+                  {app.appItOwner && <> &middot; IT: {app.appItOwner}</>}
+                  {app.ownedBy && <> &middot; Owner: {app.ownedBy}</>}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-1.5">

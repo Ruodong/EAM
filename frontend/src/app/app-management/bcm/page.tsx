@@ -21,14 +21,20 @@ interface BcmRow {
   id: string;
   appId: string;
   appName: string;
+  appFullName: string;
   appItOwner: string;
   status: string;
   appOwnership: string;
   appSolutionOwner: string;
+  ownedBy: string;
   portfolioMgt: string;
   appSolutionType: string;
   appClassification: string;
   businessFunction: string;
+  appOwnerTower: string;
+  appOwnerDomain: string;
+  appDtOwner: string;
+  appOperationOwner: string;
   bcId: string;
   bcName: string;
   domainL1: string;
@@ -346,16 +352,20 @@ export default function BCMPage() {
                   <div>
                     <FieldRow label="Application ID" value={selectedApp} required />
                     <FieldRow label="Application Name" value={appInfo?.appName} />
+                    <FieldRow label="Full Name" value={appInfo?.appFullName} />
+                    <FieldRow label="Application Status" value={appInfo?.status} />
                     <FieldRow label="Application Ownership" value={appInfo?.appOwnership} />
+                    <FieldRow label="Business Owner" value={appInfo?.ownedBy} />
                     <FieldRow label="Solution Owner" value={appInfo?.appSolutionOwner} />
-                    <FieldRow label="DT Owner" value={appInfo?.appItOwner} />
                   </div>
                   <div>
+                    <FieldRow label="IT Owner" value={appInfo?.appItOwner} />
+                    <FieldRow label="DT Owner" value={appInfo?.appDtOwner} />
+                    <FieldRow label="Operation Owner" value={appInfo?.appOperationOwner} />
+                    <FieldRow label="Owner Tower" value={appInfo?.appOwnerTower} />
+                    <FieldRow label="Owner Domain" value={appInfo?.appOwnerDomain} />
                     <FieldRow label="Portfolio Management" value={appInfo?.portfolioMgt} />
                     <FieldRow label="Solution Type" value={appInfo?.appSolutionType} />
-                    <FieldRow label="Classification" value={appInfo?.appClassification} />
-                    <FieldRow label="Function (Value Chain)" value={appInfo?.businessFunction} />
-                    <FieldRow label="Application Status" value={appInfo?.status} />
                   </div>
                 </div>
               </div>
