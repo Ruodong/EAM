@@ -73,7 +73,8 @@ test.describe('Application Master Data (/app-management/cmdb)', () => {
   test('filter by Status = Active', async ({ page }) => {
     await page.locator('select').nth(0).selectOption('Active');
     await page.getByRole('button', { name: 'Search' }).click();
-    await page.waitForSelector('table tbody tr', { timeout: 5000 });
+    // Wait for filtered data to load — status column should show "Active"
+    await page.locator('table tbody td:nth-child(4)').filter({ hasText: 'Active' }).first().waitFor({ timeout: 10_000 });
 
     // All visible status badges should say Active
     const statuses = page.locator('table tbody td:nth-child(4)');
