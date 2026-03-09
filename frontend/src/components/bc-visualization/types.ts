@@ -36,6 +36,7 @@ export interface Application {
   readonly appStatus: string;
   readonly bizFunction: string;
   readonly geo: string;
+  readonly actualK: number | null;
   readonly capabilities: ReadonlyArray<CapRef>;
 }
 

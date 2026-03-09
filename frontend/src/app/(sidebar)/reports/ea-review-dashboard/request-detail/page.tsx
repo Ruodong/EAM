@@ -61,7 +61,13 @@ function Section({ title, defaultOpen = true, badge, children }: {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="border border-border-default rounded-lg mb-4 bg-white">
-      <button className="w-full flex items-center justify-between px-4 py-3 text-left" onClick={() => setOpen(!open)}>
+      <div
+        className="w-full flex items-center justify-between px-4 py-3 text-left cursor-pointer select-none"
+        role="button"
+        tabIndex={0}
+        onClick={() => setOpen(!open)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(!open); } }}
+      >
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-text-primary">{title}</span>
           {badge !== undefined && badge > 0 && (
@@ -71,7 +77,7 @@ function Section({ title, defaultOpen = true, badge, children }: {
         <svg className={`w-4 h-4 text-text-secondary transition-transform ${open ? '' : '-rotate-90'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
-      </button>
+      </div>
       {open && <div className="px-4 pb-4">{children}</div>}
     </div>
   );
@@ -104,36 +110,188 @@ function AiDetailDrawer({ detail, onClose }: { detail: any; onClose: () => void 
   if (!detail) return null;
   const oe = detail.overall_evaluation;
   const items = detail.evaluation_items || [];
+  const scoreData = detail.score_breakdown || {};
+  const scoreEntries = Object.entries(scoreData) as [string, number][];
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
+  /* ── Radar Chart SVG helpers ── */
+  const radarSize = 240;
+  const cx = radarSize / 2;
+  const cy = radarSize / 2;
+  const radius = radarSize / 2 - 36;
+  const N = scoreEntries.length;
+  const angleStep = N > 0 ? (2 * Math.PI) / N : 0;
+
+  function polarX(i: number, r: number) { return cx + r * Math.sin(i * angleStep); }
+  function polarY(i: number, r: number) { return cy - r * Math.cos(i * angleStep); }
+
+  const gridLevels = [0.25, 0.5, 0.75, 1];
+  const gridPolygons = gridLevels.map((pct) =>
+    Array.from({ length: N }, (_, i) => `${polarX(i, radius * pct)},${polarY(i, radius * pct)}`).join(' ')
+  );
+  const dataPolygon = scoreEntries
+    .map(([, val], i) => `${polarX(i, (Math.min(Number(val), 10) / 10) * radius)},${polarY(i, (Math.min(Number(val), 10) / 10) * radius)}`)
+    .join(' ');
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/20" onClick={onClose}>
-      <div className="bg-white w-full max-w-xl shadow-xl overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="sticky top-0 bg-white border-b border-border-default px-4 py-3 flex items-center justify-between">
-          <span className="text-sm font-semibold text-text-primary">AI Evaluation Detail</span>
+      <div className="bg-white w-full max-w-3xl shadow-xl overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="sticky top-0 bg-white border-b border-border-default px-4 py-3 flex items-center justify-between z-10">
+          <span className="text-sm font-semibold text-text-primary">{detail._fileName || 'AI Evaluation Detail'}</span>
           <button onClick={onClose} className="text-text-secondary hover:text-text-primary">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <div className="p-4 space-y-4">
-          {oe && (
-            <div className="bg-blue-50 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-semibold text-text-primary">Overall Score:</span>
-                <span className={`text-lg font-bold ${Number(oe.score) >= 7 ? 'text-green-600' : Number(oe.score) >= 4 ? 'text-yellow-600' : 'text-red-600'}`}>{oe.score}</span>
-              </div>
-              <p className="text-xs text-text-secondary">{oe.summary}</p>
+        <div className="p-4 space-y-6">
+          {/* Diagram Image Preview */}
+          {detail._attachmentId && (
+            <div className="bg-gray-50 rounded-lg p-2 flex items-center justify-center max-h-[320px] overflow-hidden">
+              <img
+                src={`${API_URL}/api/ea-requests/attachments/${detail._attachmentId}/download`}
+                alt="Architecture Diagram"
+                className="max-h-[300px] w-auto object-contain rounded"
+              />
             </div>
           )}
-          {items.map((item: any, idx: number) => (
-            <div key={idx} className="border border-border-default rounded-lg p-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-semibold text-text-primary">{item.name}</span>
-                <span className={`text-sm font-bold ${Number(item.score) >= 7 ? 'text-green-600' : Number(item.score) >= 4 ? 'text-yellow-600' : 'text-red-600'}`}>{item.score}</span>
-              </div>
-              <p className="text-xs text-text-secondary">{item.evaluation}</p>
+
+          {/* Overall Score + Radar */}
+          <div className="flex gap-4">
+            {/* Left: score + summary */}
+            <div className="flex-1 bg-gray-50 rounded-lg p-4 min-w-0">
+              {oe && (
+                <>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-sm font-medium text-text-secondary">Overall Score</span>
+                    <span className={`text-3xl font-bold ${Number(oe.score) >= 7 ? 'text-green-600' : Number(oe.score) >= 4 ? 'text-yellow-600' : 'text-red-600'}`}>{oe.score}</span>
+                    <span className="text-sm text-text-secondary">/ 10</span>
+                  </div>
+                  {oe.summary && <p className="text-sm text-text-secondary leading-relaxed">{oe.summary}</p>}
+                </>
+              )}
             </div>
-          ))}
+
+            {/* Right: Radar Chart */}
+            {N >= 3 && (
+              <div className="shrink-0 flex items-center justify-center">
+                <svg width={radarSize} height={radarSize} className="overflow-visible">
+                  {gridPolygons.map((pts, idx) => (
+                    <polygon key={idx} points={pts} fill="none" stroke="#e5e7eb" strokeWidth="1" />
+                  ))}
+                  {scoreEntries.map((_, i) => (
+                    <line key={i} x1={cx} y1={cy} x2={polarX(i, radius)} y2={polarY(i, radius)} stroke="#e5e7eb" strokeWidth="1" />
+                  ))}
+                  <polygon points={dataPolygon} fill="rgba(59,130,246,0.2)" stroke="#3b82f6" strokeWidth="2" />
+                  {scoreEntries.map(([, val], i) => {
+                    const r = (Math.min(Number(val), 10) / 10) * radius;
+                    return <circle key={i} cx={polarX(i, r)} cy={polarY(i, r)} r="3" fill="#3b82f6" />;
+                  })}
+                  {scoreEntries.map(([key], i) => {
+                    const labelR = radius + 18;
+                    const x = polarX(i, labelR);
+                    const y = polarY(i, labelR);
+                    const anchor = Math.abs(x - cx) < 5 ? 'middle' : x > cx ? 'start' : 'end';
+                    const label = key.replace(/_/g, ' ').split(' ').slice(0, 3).join(' ');
+                    return <text key={i} x={x} y={y} textAnchor={anchor} dominantBaseline="central" className="text-[9px] fill-gray-500">{label}</text>;
+                  })}
+                </svg>
+              </div>
+            )}
+          </div>
+
+          {/* Score Breakdown with Progress Bars */}
+          {scoreEntries.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-text-primary mb-3">Score Breakdown</h4>
+              <div className="space-y-2">
+                {scoreEntries.map(([key, val]) => {
+                  const n = Number(val);
+                  const pct = Math.min(n, 10) * 10;
+                  const barColor = n >= 7 ? 'bg-green-500' : n >= 4 ? 'bg-yellow-500' : 'bg-red-500';
+                  const textColor = n >= 7 ? 'text-green-600' : n >= 4 ? 'text-yellow-600' : 'text-red-600';
+                  return (
+                    <div key={key} className="flex items-center gap-3">
+                      <span className="text-xs text-text-secondary w-40 shrink-0 truncate" title={key.replace(/_/g, ' ')}>
+                        {key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                      </span>
+                      <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className={`text-sm font-bold w-8 text-right ${textColor}`}>{n}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Evaluation Items (fallback for old data format) */}
+          {items.length > 0 && scoreEntries.length === 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-text-primary mb-3">Evaluation Items</h4>
+              <div className="space-y-2">
+                {items.map((item: any, idx: number) => {
+                  const n = Number(item.score);
+                  const pct = Math.min(n, 10) * 10;
+                  const barColor = n >= 7 ? 'bg-green-500' : n >= 4 ? 'bg-yellow-500' : 'bg-red-500';
+                  const textColor = n >= 7 ? 'text-green-600' : n >= 4 ? 'text-yellow-600' : 'text-red-600';
+                  return (
+                    <div key={idx}>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-text-secondary w-40 shrink-0 truncate">{item.name}</span>
+                        <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className={`text-sm font-bold w-8 text-right ${textColor}`}>{item.score}</span>
+                      </div>
+                      {item.evaluation && <p className="text-xs text-text-secondary mt-1 pl-[172px]">{item.evaluation}</p>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Issues */}
+          {detail.issues && detail.issues.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-text-primary mb-2">Issues ({detail.issues.length})</h4>
+              <div className="space-y-3">
+                {detail.issues.map((issue: any) => (
+                  <div key={issue.id} className="border border-border-light rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-xs font-mono text-text-secondary">{issue.id}</span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                        issue.priority === 'High' ? 'bg-red-100 text-red-700' :
+                        issue.priority === 'Medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
+                      }`}>{issue.priority}</span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded ${
+                        issue.issue_type === 'must_fix' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+                      }`}>{issue.issue_type === 'must_fix' ? 'Must Fix' : 'Suggestion'}</span>
+                      <span className="text-xs text-text-secondary">{issue.dimension}</span>
+                    </div>
+                    <p className="text-sm text-text-primary mb-1">{issue.description}</p>
+                    {issue.suggestion && (
+                      <p className="text-xs text-text-secondary"><span className="font-medium">Suggestion:</span> {issue.suggestion}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recommendations */}
+          {detail.recommendations && detail.recommendations.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-text-primary mb-2">Recommendations</h4>
+              <ol className="list-decimal list-inside space-y-1">
+                {detail.recommendations.map((rec: string, i: number) => (
+                  <li key={i} className="text-sm text-text-secondary">{rec}</li>
+                ))}
+              </ol>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -221,7 +379,7 @@ function DashboardRequestDetailContent() {
       return (
         <div className="flex items-center gap-1.5">
           {row.aiResult && (
-            <button onClick={() => setAiDetail(row.aiResult)} className="text-primary-blue hover:text-blue-700" title="View AI evaluation detail">
+            <button onClick={() => setAiDetail({ ...row.aiResult, _attachmentId: row.id, _fileName: row.fileName })} className="text-primary-blue hover:text-blue-700" title="View AI evaluation detail">
               <FileSearch className="w-4 h-4" />
             </button>
           )}

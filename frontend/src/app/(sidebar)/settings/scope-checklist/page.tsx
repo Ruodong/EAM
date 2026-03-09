@@ -8,7 +8,7 @@ import { SearchForm, SearchField } from '@/components/ui/SearchForm';
 import { Plus, Download, Save, Settings2 } from 'lucide-react';
 
 const searchFields: SearchField[] = [
-  { key: 'category', label: 'Category', type: 'select', options: [
+  { key: 'category', label: 'Category', type: 'multiselect', options: [
     { label: 'Architecture', value: 'Architecture' },
     { label: 'Security', value: 'Security' },
     { label: 'Data', value: 'Data' },

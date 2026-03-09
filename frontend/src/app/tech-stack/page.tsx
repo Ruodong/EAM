@@ -12,7 +12,7 @@ const searchFields: SearchField[] = [
   { key: 'applicationId', label: 'Application ID', type: 'text', placeholder: 'Application ID' },
   { key: 'applicationName', label: 'Application Name', type: 'text', placeholder: 'Application Name' },
   { key: 'applicationOwner', label: 'Application Owner', type: 'text', placeholder: 'Application Owner' },
-  { key: 'lifecycleStatus', label: 'Lifecycle Status', type: 'select', options: [
+  { key: 'lifecycleStatus', label: 'Lifecycle Status', type: 'multiselect', options: [
     { label: 'Active', value: 'Active' },
     { label: 'Phase Out', value: 'Phase Out' },
     { label: 'End of Life', value: 'End of Life' },

@@ -11,7 +11,7 @@ import { Plus, Upload, Download, Mail } from 'lucide-react';
 const searchFields: SearchField[] = [
   { key: 'certId', label: 'Certificate No.', type: 'text', placeholder: 'Certificate No.' },
   { key: 'name', label: 'Exam Name', type: 'text', placeholder: 'Exam Name' },
-  { key: 'type', label: 'Certificate Type', type: 'select', options: [
+  { key: 'type', label: 'Certificate Type', type: 'multiselect', options: [
     { label: 'EA Foundation', value: 'EA Foundation' },
     { label: 'EA Practitioner', value: 'EA Practitioner' },
     { label: 'TOGAF', value: 'TOGAF' },

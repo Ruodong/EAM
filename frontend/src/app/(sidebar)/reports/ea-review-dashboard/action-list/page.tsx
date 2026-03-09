@@ -47,12 +47,12 @@ function DashboardActionListContent() {
 
   const searchFields: SearchField[] = useMemo(() => [
     { key: 'title', label: 'Action Title', type: 'text' as const, placeholder: 'Action Title' },
-    { key: 'status', label: 'Status', type: 'select' as const, options: [
+    { key: 'status', label: 'Status', type: 'multiselect' as const, options: [
       { label: 'Open', value: 'Open' },
       { label: 'In Validation', value: 'In Validation' },
       { label: 'Closed', value: 'Closed' },
     ]},
-    { key: 'priority', label: 'Priority', type: 'select' as const, options: [
+    { key: 'priority', label: 'Priority', type: 'multiselect' as const, options: [
       { label: 'High', value: 'High' },
       { label: 'Medium', value: 'Medium' },
       { label: 'Low', value: 'Low' },
@@ -104,7 +104,7 @@ function DashboardActionListContent() {
       {/* Back button + title */}
       <div className="flex items-center gap-3 mb-4">
         <button
-          onClick={() => router.push('/reports/ea-review-dashboard')}
+          onClick={() => router.back()}
           className="flex items-center gap-1 text-sm text-gray-500 hover:text-primary-blue transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />

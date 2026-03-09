@@ -12,13 +12,13 @@ const searchFields: SearchField[] = [
   { key: 'projectId', label: 'Project ID', type: 'text', placeholder: 'Project ID' },
   { key: 'name', label: 'Project Name', type: 'text', placeholder: 'Project Name' },
   { key: 'itCode', label: 'IT Code', type: 'text', placeholder: 'IT Code' },
-  { key: 'requestStatus', label: 'Request Status', type: 'select', options: [
+  { key: 'requestStatus', label: 'Request Status', type: 'multiselect', options: [
     { label: 'Draft', value: 'Draft' },
     { label: 'Submitted', value: 'Submitted' },
     { label: 'In Progress', value: 'In Progress' },
     { label: 'Completed', value: 'Completed' },
   ]},
-  { key: 'aiRelated', label: 'AI Related', type: 'select', options: [
+  { key: 'aiRelated', label: 'AI Related', type: 'multiselect', options: [
     { label: 'Yes', value: 'true' },
     { label: 'No', value: 'false' },
   ]},

@@ -18,7 +18,7 @@ const searchFields: SearchField[] = [
   { key: 'createdBy', label: 'Created By(IT Code)', type: 'text', placeholder: 'IT Code' },
   { key: 'actionId', label: 'Action ID', type: 'text', placeholder: 'Action ID' },
   { key: 'assigneeName', label: 'Assignee Name', type: 'text', placeholder: 'Assignee' },
-  { key: 'status', label: 'Status', type: 'select', options: [
+  { key: 'status', label: 'Status', type: 'multiselect', options: [
     { label: 'Open', value: 'Open' },
     { label: 'In Validation', value: 'In Validation' },
     { label: 'Closed', value: 'Closed' },
@@ -33,7 +33,7 @@ export default function ActionsPage() {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState('all');
   const [sortKey, setSortKey] = useState<string>('');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const { data, isLoading } = useQuery({
     queryKey: ['actions', page, pageSize, filters, activeTab, sortKey, sortDir],

@@ -11,7 +11,7 @@ const searchFields: SearchField[] = [
   { key: 'projectName', label: 'Project', type: 'text', placeholder: 'Project' },
   { key: 'title', label: 'Meeting Title', type: 'text', placeholder: 'Meeting Title' },
   { key: 'meetingAgent', label: 'Meeting Agent', type: 'text', placeholder: 'Meeting Agent' },
-  { key: 'evReview', label: 'EV Review', type: 'select', options: [
+  { key: 'evReview', label: 'EV Review', type: 'multiselect', options: [
     { label: 'Yes', value: 'Yes' },
     { label: 'No', value: 'No' },
   ]},
@@ -26,7 +26,7 @@ export default function MeetingsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [sortKey, setSortKey] = useState<string>('');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const { data, isLoading } = useQuery({
     queryKey: ['meetings', page, pageSize, filters, sortKey, sortDir],

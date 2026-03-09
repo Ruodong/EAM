@@ -2,21 +2,16 @@
   "name": "eam",
   "version": "1.0.0",
   "private": true,
-  "description": "Lenovo Enterprise Architecture Management - TypeScript Rewrite",
+  "description": "Lenovo Enterprise Architecture Management",
   "workspaces": [
-    "frontend",
-    "backend",
-    "shared"
+    "frontend"
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "cd frontend && npm run dev",
-    "dev:backend": "cd backend && npm run dev",
-    "build": "npm run build:shared && npm run build:backend && npm run build:frontend",
-    "build:frontend": "cd frontend && npm run build",
-    "build:backend": "cd backend && npm run build",
-    "build:shared": "cd shared && npm run build",
-    "seed": "cd backend && npm run seed"
+    "dev:backend": "cd backend && source venv/bin/activate && uvicorn app.main:app --reload --host 0.0.0.0 --port 4000",
+    "build": "npm run build:frontend",
+    "build:frontend": "cd frontend && npm run build"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

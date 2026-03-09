@@ -65,9 +65,12 @@ function Section({ title, defaultOpen = true, action, badge, children }: {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="border border-border-default rounded-lg mb-4 bg-white">
-      <button
-        className="w-full flex items-center justify-between px-4 py-3 text-left"
+      <div
+        className="w-full flex items-center justify-between px-4 py-3 text-left cursor-pointer select-none"
+        role="button"
+        tabIndex={0}
         onClick={() => setOpen(!open)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(!open); } }}
       >
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-text-primary">{title}</span>
@@ -79,7 +82,7 @@ function Section({ title, defaultOpen = true, action, badge, children }: {
         <svg className={`w-4 h-4 text-text-secondary transition-transform ${open ? '' : '-rotate-90'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
-      </button>
+      </div>
       {open && <div className="px-4 pb-4">{children}</div>}
     </div>
   );
@@ -303,7 +306,7 @@ export default function RequestDetailPage() {
       return (
         <div className="flex items-center gap-1.5">
           {row.aiResult && (
-            <button onClick={() => setAiDetail(row.aiResult)} className="text-primary-blue hover:text-blue-700" title="View AI evaluation detail">
+            <button onClick={() => setAiDetail({ ...row.aiResult, _attachmentId: row.id, _fileName: row.fileName })} className="text-primary-blue hover:text-blue-700" title="View AI evaluation detail">
               <FileSearch className="w-4 h-4" />
             </button>
           )}
@@ -668,81 +671,164 @@ export default function RequestDetailPage() {
       </Modal>
 
       {/* AI Evaluation Detail Drawer */}
-      <Drawer open={!!aiDetail} onClose={() => setAiDetail(null)} title={aiDetail?.title || 'AI Evaluation Detail'} size="lg">
-        {aiDetail && (
-          <div className="space-y-6">
-            {/* Overall Score */}
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-sm font-medium text-text-secondary">Overall Score</span>
-                <span className={`text-2xl font-bold ${
-                  (aiDetail.overall_evaluation?.score ?? 0) >= 7 ? 'text-green-600' :
-                  (aiDetail.overall_evaluation?.score ?? 0) >= 4 ? 'text-yellow-600' : 'text-red-600'
-                }`}>{aiDetail.overall_evaluation?.score ?? '-'}</span>
+      <Drawer open={!!aiDetail} onClose={() => setAiDetail(null)} title={aiDetail?._fileName || 'AI Evaluation Detail'} size="xl">
+        {aiDetail && (() => {
+          const scoreData = aiDetail.score_breakdown || {};
+          const scoreEntries = Object.entries(scoreData) as [string, number][];
+          const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
+          /* ── Radar Chart SVG ── */
+          const radarSize = 240;
+          const cx = radarSize / 2;
+          const cy = radarSize / 2;
+          const radius = radarSize / 2 - 36;
+          const N = scoreEntries.length;
+          const angleStep = N > 0 ? (2 * Math.PI) / N : 0;
+
+          function polarX(i: number, r: number) { return cx + r * Math.sin(i * angleStep); }
+          function polarY(i: number, r: number) { return cy - r * Math.cos(i * angleStep); }
+
+          const gridLevels = [0.25, 0.5, 0.75, 1];
+          const gridPolygons = gridLevels.map((pct) =>
+            Array.from({ length: N }, (_, i) => `${polarX(i, radius * pct)},${polarY(i, radius * pct)}`).join(' ')
+          );
+          const dataPolygon = scoreEntries
+            .map(([, val], i) => `${polarX(i, (Math.min(Number(val), 10) / 10) * radius)},${polarY(i, (Math.min(Number(val), 10) / 10) * radius)}`)
+            .join(' ');
+
+          return (
+            <div className="space-y-6">
+              {/* Diagram Image Preview */}
+              {aiDetail._attachmentId && (
+                <div className="bg-gray-50 rounded-lg p-2 flex items-center justify-center max-h-[320px] overflow-hidden">
+                  <img
+                    src={`${API_URL}/api/ea-requests/attachments/${aiDetail._attachmentId}/download`}
+                    alt="Architecture Diagram"
+                    className="max-h-[300px] w-auto object-contain rounded"
+                  />
+                </div>
+              )}
+
+              {/* Overall Score + Radar */}
+              <div className="flex gap-4">
+                {/* Left: score + summary */}
+                <div className="flex-1 bg-gray-50 rounded-lg p-4 min-w-0">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-sm font-medium text-text-secondary">Overall Score</span>
+                    <span className={`text-3xl font-bold ${
+                      (aiDetail.overall_evaluation?.score ?? 0) >= 7 ? 'text-green-600' :
+                      (aiDetail.overall_evaluation?.score ?? 0) >= 4 ? 'text-yellow-600' : 'text-red-600'
+                    }`}>{aiDetail.overall_evaluation?.score ?? '-'}</span>
+                    <span className="text-sm text-text-secondary">/ 10</span>
+                  </div>
+                  {aiDetail.overall_evaluation?.summary && (
+                    <p className="text-sm text-text-secondary leading-relaxed">{aiDetail.overall_evaluation.summary}</p>
+                  )}
+                </div>
+
+                {/* Right: Radar Chart */}
+                {N >= 3 && (
+                  <div className="shrink-0 flex items-center justify-center">
+                    <svg width={radarSize} height={radarSize} className="overflow-visible">
+                      {/* Grid polygons */}
+                      {gridPolygons.map((pts, idx) => (
+                        <polygon key={idx} points={pts} fill="none" stroke="#e5e7eb" strokeWidth="1" />
+                      ))}
+                      {/* Axis lines */}
+                      {scoreEntries.map((_, i) => (
+                        <line key={i} x1={cx} y1={cy} x2={polarX(i, radius)} y2={polarY(i, radius)} stroke="#e5e7eb" strokeWidth="1" />
+                      ))}
+                      {/* Data polygon */}
+                      <polygon points={dataPolygon} fill="rgba(59,130,246,0.2)" stroke="#3b82f6" strokeWidth="2" />
+                      {/* Data points */}
+                      {scoreEntries.map(([, val], i) => {
+                        const r = (Math.min(Number(val), 10) / 10) * radius;
+                        return <circle key={i} cx={polarX(i, r)} cy={polarY(i, r)} r="3" fill="#3b82f6" />;
+                      })}
+                      {/* Axis labels */}
+                      {scoreEntries.map(([key], i) => {
+                        const labelR = radius + 18;
+                        const x = polarX(i, labelR);
+                        const y = polarY(i, labelR);
+                        const anchor = Math.abs(x - cx) < 5 ? 'middle' : x > cx ? 'start' : 'end';
+                        const label = key.replace(/_/g, ' ').split(' ').slice(0, 3).join(' ');
+                        return (
+                          <text key={i} x={x} y={y} textAnchor={anchor} dominantBaseline="central" className="text-[9px] fill-gray-500">{label}</text>
+                        );
+                      })}
+                    </svg>
+                  </div>
+                )}
               </div>
-              {aiDetail.overall_evaluation?.summary && (
-                <p className="text-sm text-text-secondary">{aiDetail.overall_evaluation.summary}</p>
+
+              {/* Score Breakdown with Progress Bars */}
+              {scoreEntries.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-text-primary mb-3">Score Breakdown</h4>
+                  <div className="space-y-2">
+                    {scoreEntries.map(([key, val]) => {
+                      const n = Number(val);
+                      const pct = Math.min(n, 10) * 10;
+                      const barColor = n >= 7 ? 'bg-green-500' : n >= 4 ? 'bg-yellow-500' : 'bg-red-500';
+                      const textColor = n >= 7 ? 'text-green-600' : n >= 4 ? 'text-yellow-600' : 'text-red-600';
+                      return (
+                        <div key={key} className="flex items-center gap-3">
+                          <span className="text-xs text-text-secondary w-40 shrink-0 truncate" title={key.replace(/_/g, ' ')}>
+                            {key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                          </span>
+                          <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className={`text-sm font-bold w-8 text-right ${textColor}`}>{n}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Issues */}
+              {aiDetail.issues && aiDetail.issues.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-text-primary mb-2">Issues ({aiDetail.issues.length})</h4>
+                  <div className="space-y-3">
+                    {aiDetail.issues.map((issue: any) => (
+                      <div key={issue.id} className="border border-border-light rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-xs font-mono text-text-secondary">{issue.id}</span>
+                          <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                            issue.priority === 'High' ? 'bg-red-100 text-red-700' :
+                            issue.priority === 'Medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
+                          }`}>{issue.priority}</span>
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${
+                            issue.issue_type === 'must_fix' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+                          }`}>{issue.issue_type === 'must_fix' ? 'Must Fix' : 'Suggestion'}</span>
+                          <span className="text-xs text-text-secondary">{issue.dimension}</span>
+                        </div>
+                        <p className="text-sm text-text-primary mb-1">{issue.description}</p>
+                        {issue.suggestion && (
+                          <p className="text-xs text-text-secondary"><span className="font-medium">Suggestion:</span> {issue.suggestion}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {aiDetail.recommendations && aiDetail.recommendations.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-text-primary mb-2">Recommendations</h4>
+                  <ol className="list-decimal list-inside space-y-1">
+                    {aiDetail.recommendations.map((rec: string, i: number) => (
+                      <li key={i} className="text-sm text-text-secondary">{rec}</li>
+                    ))}
+                  </ol>
+                </div>
               )}
             </div>
-
-            {/* Score Breakdown */}
-            {aiDetail.score_breakdown && (
-              <div>
-                <h4 className="text-sm font-semibold text-text-primary mb-2">Score Breakdown</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(aiDetail.score_breakdown).map(([key, val]) => (
-                    <div key={key} className="flex justify-between bg-gray-50 rounded px-3 py-2">
-                      <span className="text-sm text-text-secondary">{key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
-                      <span className={`text-sm font-bold ${
-                        Number(val) >= 7 ? 'text-green-600' : Number(val) >= 4 ? 'text-yellow-600' : 'text-red-600'
-                      }`}>{String(val)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Issues */}
-            {aiDetail.issues && aiDetail.issues.length > 0 && (
-              <div>
-                <h4 className="text-sm font-semibold text-text-primary mb-2">Issues ({aiDetail.issues.length})</h4>
-                <div className="space-y-3">
-                  {aiDetail.issues.map((issue: any) => (
-                    <div key={issue.id} className="border border-border-light rounded-lg p-3">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-xs font-mono text-text-secondary">{issue.id}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                          issue.priority === 'High' ? 'bg-red-100 text-red-700' :
-                          issue.priority === 'Medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
-                        }`}>{issue.priority}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${
-                          issue.issue_type === 'must_fix' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
-                        }`}>{issue.issue_type === 'must_fix' ? 'Must Fix' : 'Suggestion'}</span>
-                        <span className="text-xs text-text-secondary">{issue.dimension}</span>
-                      </div>
-                      <p className="text-sm text-text-primary mb-1">{issue.description}</p>
-                      {issue.suggestion && (
-                        <p className="text-xs text-text-secondary"><span className="font-medium">Suggestion:</span> {issue.suggestion}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Recommendations */}
-            {aiDetail.recommendations && aiDetail.recommendations.length > 0 && (
-              <div>
-                <h4 className="text-sm font-semibold text-text-primary mb-2">Recommendations</h4>
-                <ol className="list-decimal list-inside space-y-1">
-                  {aiDetail.recommendations.map((rec: string, i: number) => (
-                    <li key={i} className="text-sm text-text-secondary">{rec}</li>
-                  ))}
-                </ol>
-              </div>
-            )}
-          </div>
-        )}
+          );
+        })()}
       </Drawer>
 
       {/* Add Action Modal */}

@@ -8,7 +8,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { SearchForm, SearchField } from '@/components/ui/SearchForm';
 const searchFields: SearchField[] = [
   { key: 'projectId', label: 'Project ID', type: 'text', placeholder: 'Project ID' },
-  { key: 'status', label: 'Status', type: 'select', options: [
+  { key: 'status', label: 'Status', type: 'multiselect', options: [
     { label: 'Draft', value: 'Draft' },
     { label: 'In Progress', value: 'In Progress' },
     { label: 'Completed', value: 'Completed' },

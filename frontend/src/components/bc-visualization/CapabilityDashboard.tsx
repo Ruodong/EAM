@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { CapNode, Application } from './types';
+import { MultiSelect } from '../ui/MultiSelect';
 
 /* ── colour / style maps ── */
 
@@ -12,18 +13,15 @@ const PORTFOLIO_COLORS: Record<string, { bg: string; text: string; border: strin
 };
 const PORTFOLIO_DEFAULT = { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' };
 
-const GEO_STYLES: Record<string, { borderStyle: string; borderWidth: string }> = {
-  Global: { borderStyle: 'solid',  borderWidth: '2px' },
-  PRC:    { borderStyle: 'dashed', borderWidth: '2px' },
-  ROW:    { borderStyle: 'dotted', borderWidth: '2.5px' },
-};
-const GEO_DEFAULT = { borderStyle: 'solid', borderWidth: '1px' };
-
 function getPortfolioColor(p: string) {
   return PORTFOLIO_COLORS[p] ?? PORTFOLIO_DEFAULT;
 }
-function getGeoStyle(g: string) {
-  return GEO_STYLES[g] ?? GEO_DEFAULT;
+
+/* ── helpers ── */
+
+function formatTco(k: number): string {
+  if (k >= 1000) return `$${(k / 1000).toFixed(1)}M`;
+  return `$${Math.round(k)}K`;
 }
 
 /* ── sub-components ── */
@@ -68,33 +66,6 @@ function Legend() {
         </div>
       </div>
 
-      {/* Geo legend */}
-      <div>
-        <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Geo</p>
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(GEO_STYLES).map(([name, s]) => (
-            <span
-              key={name}
-              className="inline-flex items-center rounded px-2 py-0.5 text-[11px] font-medium text-gray-700"
-              style={{
-                border: `${s.borderWidth} ${s.borderStyle} #64748b`,
-                backgroundColor: '#f8fafc',
-              }}
-            >
-              {name}
-            </span>
-          ))}
-          <span
-            className="inline-flex items-center rounded px-2 py-0.5 text-[11px] font-medium text-gray-400"
-            style={{
-              border: `${GEO_DEFAULT.borderWidth} ${GEO_DEFAULT.borderStyle} #cbd5e1`,
-              backgroundColor: '#f8fafc',
-            }}
-          >
-            N/A
-          </span>
-        </div>
-      </div>
     </div>
   );
 }
@@ -102,7 +73,7 @@ function Legend() {
 /* ── main component ── */
 
 export function CapabilityDashboard({ capabilities, domains, applications }: CapabilityDashboardProps) {
-  const [domainFilter, setDomainFilter] = useState<string>('All');
+  const [domainFilters, setDomainFilters] = useState<string[]>([]);
 
   // Build app lookup: appId → full Application
   const appLookup = useMemo(() => {
@@ -113,15 +84,39 @@ export function CapabilityDashboard({ capabilities, domains, applications }: Cap
     return map;
   }, [applications]);
 
+  // Split TCO: each app's cost is divided evenly across its mapped L3 capabilities
+  const capTcoMap = useMemo(() => {
+    const appCapCount = new Map<string, number>();
+    for (const cap of capabilities) {
+      if (cap.level !== 3) continue;
+      for (const app of cap.applications) {
+        appCapCount.set(app.id, (appCapCount.get(app.id) ?? 0) + 1);
+      }
+    }
+    const map = new Map<string, number>();
+    for (const cap of capabilities) {
+      if (cap.level !== 3) continue;
+      let sum = 0;
+      for (const app of cap.applications) {
+        const meta = appLookup.get(app.id);
+        if (meta?.actualK != null) {
+          sum += meta.actualK / (appCapCount.get(app.id) ?? 1);
+        }
+      }
+      map.set(cap.id, sum);
+    }
+    return map;
+  }, [capabilities, appLookup]);
+
   const l3Caps = useMemo(
     () => capabilities.filter((c) => c.level === 3),
     [capabilities],
   );
 
   const filtered = useMemo(() => {
-    if (domainFilter === 'All') return l3Caps;
-    return l3Caps.filter((c) => c.domain === domainFilter);
-  }, [l3Caps, domainFilter]);
+    if (domainFilters.length === 0) return l3Caps;
+    return l3Caps.filter((c) => domainFilters.includes(c.domain));
+  }, [l3Caps, domainFilters]);
 
   const totalCaps = l3Caps.length;
   const coveredCaps = l3Caps.filter((c) => c.applications.length > 0).length;
@@ -135,13 +130,19 @@ export function CapabilityDashboard({ capabilities, domains, applications }: Cap
     return ids.size;
   }, [l3Caps]);
 
+  const totalTco = useMemo(() => {
+    let sum = 0;
+    for (const v of capTcoMap.values()) sum += v;
+    return sum;
+  }, [capTcoMap]);
+
   // Group by L1 domain, then L2 sub-domain
   const grouped = useMemo(() => {
     const l1Nodes = capabilities.filter((c) => c.level === 1);
     const l2Nodes = capabilities.filter((c) => c.level === 2);
 
     return l1Nodes
-      .filter((l1) => domainFilter === 'All' || l1.domain === domainFilter)
+      .filter((l1) => domainFilters.length === 0 || domainFilters.includes(l1.domain))
       .map((l1) => {
         const l2Children = l2Nodes
           .filter((l2) => l2.parentId === l1.id)
@@ -153,16 +154,17 @@ export function CapabilityDashboard({ capabilities, domains, applications }: Cap
         return { ...l1, subDomains: l2Children };
       })
       .filter((l1) => l1.subDomains.length > 0);
-  }, [capabilities, filtered, domainFilter]);
+  }, [capabilities, filtered, domainFilters]);
 
   return (
     <div className="flex flex-col gap-4">
       {/* KPI Row */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <KpiCard label="Total Capabilities (L3)" value={totalCaps} />
         <KpiCard label="Covered" value={coveredCaps} colorClass="text-emerald-600" />
         <KpiCard label="Coverage Rate" value={`${coverageRate}%`} colorClass="text-sky-600" />
         <KpiCard label="Unique Applications" value={uniqueApps} colorClass="text-violet-600" />
+        <KpiCard label="Total TCO" value={formatTco(totalTco)} colorClass="text-amber-600" />
       </div>
 
       {/* Legend */}
@@ -170,16 +172,13 @@ export function CapabilityDashboard({ capabilities, domains, applications }: Cap
 
       {/* Filter */}
       <div className="flex items-center gap-3">
-        <select
-          value={domainFilter}
-          onChange={(e) => setDomainFilter(e.target.value)}
-          className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-primary-blue"
-        >
-          <option value="All">All Domains</option>
-          {domains.map((d) => (
-            <option key={d} value={d}>{d}</option>
-          ))}
-        </select>
+        <MultiSelect
+          options={domains.map((d) => ({ label: d, value: d }))}
+          value={domainFilters}
+          onChange={setDomainFilters}
+          placeholder="All Domains"
+          maxDisplay={2}
+        />
         <span className="text-xs text-gray-500">
           {filtered.length} capabilities across {grouped.length} domains
         </span>
@@ -187,27 +186,51 @@ export function CapabilityDashboard({ capabilities, domains, applications }: Cap
 
       {/* Domain groups */}
       {grouped.map((l1) => {
+        const l1Tco = l1.subDomains.reduce(
+          (sum, l2) => sum + l2.children.reduce((s, c) => s + (capTcoMap.get(c.id) ?? 0), 0), 0,
+        );
         return (
           <div key={l1.id} className="bg-white rounded-lg border border-gray-200 p-4">
-            <h2 className="mb-3 inline-block rounded-lg px-3 py-1.5 text-sm font-semibold text-gray-900 bg-gray-100 border border-gray-200">
-              {l1.name}
-            </h2>
+            <div className="mb-3 flex items-center gap-2">
+              <h2 className="inline-block rounded-lg px-3 py-1.5 text-sm font-semibold text-gray-900 bg-gray-100 border border-gray-200">
+                {l1.name}
+              </h2>
+              {l1Tco > 0 && (
+                <span className="ml-auto text-xs font-medium text-amber-600">TCO: {formatTco(l1Tco)}</span>
+              )}
+            </div>
 
-            {l1.subDomains.map((l2) => (
+            {l1.subDomains.map((l2) => {
+              const l2Tco = l2.children.reduce((s, c) => s + (capTcoMap.get(c.id) ?? 0), 0);
+              return (
               <div key={l2.id} className="mb-4 last:mb-0">
-                <h3 className="mb-2 text-sm font-medium text-gray-700">{l2.name}</h3>
+                <div className="mb-2 flex items-center">
+                  <h3 className="text-sm font-medium text-gray-700">{l2.name}</h3>
+                  {l2Tco > 0 && (
+                    <span className="ml-auto text-xs text-amber-600">TCO: {formatTco(l2Tco)}</span>
+                  )}
+                </div>
                 <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-                  {l2.children.map((cap) => (
+                  {l2.children.map((cap) => {
+                    const capTco = capTcoMap.get(cap.id) ?? 0;
+                    return (
                     <div key={cap.id} className="rounded-xl border border-gray-100 bg-gray-50/60 p-3">
                       <div className="mb-1.5 flex items-start justify-between gap-2">
                         <span className="text-xs font-medium text-gray-800">{cap.name}</span>
-                        <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                          cap.applications.length > 0
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : 'bg-gray-100 text-gray-500'
-                        }`}>
-                          {cap.applications.length}
-                        </span>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {capTco > 0 && (
+                            <span className="inline-block rounded px-1.5 py-0.5 text-[10px] font-medium bg-amber-50 text-amber-700">
+                              {formatTco(capTco)}
+                            </span>
+                          )}
+                          <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                            cap.applications.length > 0
+                              ? 'bg-emerald-50 text-emerald-700'
+                              : 'bg-gray-100 text-gray-500'
+                          }`}>
+                            {cap.applications.length}
+                          </span>
+                        </div>
                       </div>
                       {cap.nameCn && (
                         <p className="mb-1.5 text-xs text-gray-400">{cap.nameCn}</p>
@@ -216,16 +239,17 @@ export function CapabilityDashboard({ capabilities, domains, applications }: Cap
                         <div className="flex flex-wrap gap-1">
                           {cap.applications.map((app) => {
                             const meta = appLookup.get(app.id);
-                            const geo = app.geo || meta?.geo || '';
                             const portfolio = app.portfolioMgt || meta?.portfolioMgt || '';
                             const pColor = getPortfolioColor(portfolio);
-                            const gStyle = getGeoStyle(geo);
 
+                            const tcoStr = meta?.actualK != null
+                              ? (meta.actualK >= 1000 ? `$${(meta.actualK / 1000).toFixed(1)}M` : `$${Math.round(meta.actualK)}K`)
+                              : null;
                             const tooltipLines = [
                               meta?.appFullName && meta.appFullName !== app.name ? `Full Name: ${meta.appFullName}` : '',
                               `Status: ${meta?.appStatus || app.status || 'N/A'}`,
                               `Portfolio: ${portfolio || 'N/A'}`,
-                              `Geo: ${geo || 'N/A'}`,
+                              tcoStr ? `Actual TCO: ${tcoStr}` : '',
                               meta?.appSolutionOwner ? `Solution Owner: ${meta.appSolutionOwner}` : '',
                               meta?.appItOwner ? `IT Owner: ${meta.appItOwner}` : '',
                               meta?.ownedBy ? `Business Owner: ${meta.ownedBy}` : '',
@@ -241,9 +265,7 @@ export function CapabilityDashboard({ capabilities, domains, applications }: Cap
                                 style={{
                                   backgroundColor: pColor.bg,
                                   color: pColor.text,
-                                  borderStyle: gStyle.borderStyle,
-                                  borderWidth: gStyle.borderWidth,
-                                  borderColor: pColor.border,
+                                  border: `1px solid ${pColor.border}`,
                                 }}
                                 title={tooltipLines}
                               >
@@ -256,10 +278,12 @@ export function CapabilityDashboard({ capabilities, domains, applications }: Cap
                         <p className="text-xs text-gray-300">No applications mapped</p>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         );
       })}

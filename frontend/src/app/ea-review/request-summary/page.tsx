@@ -14,19 +14,19 @@ export default function RequestSummaryPage() {
   const t = useT();
   const { data: filterOptions } = useQuery({
     queryKey: ['ea-request-filter-options'],
-    queryFn: () => api.get<{ projects: string[]; organizations: string[] }>('/ea-requests/filter-options'),
+    queryFn: () => api.get<{ projects: { id: string; name: string }[]; organizations: string[] }>('/ea-requests/filter-options'),
   });
 
   const searchFields: SearchField[] = useMemo(() => [
-    { key: 'projectName', label: 'Project', type: 'combobox' as const, placeholder: 'Select or type Project', options: (filterOptions?.projects ?? []).map(n => ({ label: n, value: n })) },
-    { key: 'status', label: 'Request Status', type: 'select' as const, options: [
+    { key: 'projectName', label: 'Project', type: 'combobox' as const, placeholder: 'Project ID or Name', options: (filterOptions?.projects ?? []).map(p => ({ label: `${p.id} - ${p.name}`, value: `${p.id} - ${p.name}` })) },
+    { key: 'status', label: 'Request Status', type: 'multiselect' as const, options: [
       { label: 'Draft', value: 'Draft' },
       { label: 'Submitted', value: 'Submitted' },
       { label: 'In Progress', value: 'In Progress' },
       { label: 'Completed', value: 'Completed' },
     ]},
     { key: 'requestId', label: 'Request ID/Name', type: 'text' as const, placeholder: 'Request ID/Name' },
-    { key: 'scope', label: 'Review Scope', type: 'select' as const, options: [
+    { key: 'scope', label: 'Review Scope', type: 'multiselect' as const, options: [
       { label: 'All', value: 'All' },
       { label: 'Part of Project', value: 'Part of Project' },
       { label: 'Full Review', value: 'Full Review' },
@@ -35,14 +35,14 @@ export default function RequestSummaryPage() {
       { label: 'Light Review', value: 'Light Review' },
     ]},
     { key: 'pmName', label: 'PM', type: 'text' as const, placeholder: 'PM' },
-    { key: 'reviewResult', label: 'EA Review Result', type: 'select' as const, options: [
+    { key: 'reviewResult', label: 'EA Review Result', type: 'multiselect' as const, options: [
       { label: 'Approved', value: 'Approved' },
       { label: 'Approved with Actions', value: 'Approved with Actions' },
       { label: 'Rejected', value: 'Rejected' },
       { label: 'Accepted by EA', value: 'Accepted by EA' },
       { label: 'Returned by EA', value: 'Returned by EA' },
     ]},
-    { key: 'organization', label: 'Organization', type: 'select' as const, options: (filterOptions?.organizations ?? []).map(n => ({ label: n, value: n })) },
+    { key: 'organization', label: 'Organization', type: 'multiselect' as const, options: (filterOptions?.organizations ?? []).map(n => ({ label: n, value: n })) },
     { key: 'requestorName', label: 'Requestor', type: 'text' as const, placeholder: 'Requestor' },
     { key: 'reviewerName', label: 'Assigned Reviewer', type: 'text' as const, placeholder: 'Assigned Reviewer' },
   ], [filterOptions]);
@@ -50,7 +50,7 @@ export default function RequestSummaryPage() {
   const [pageSize, setPageSize] = useState(10);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [sortKey, setSortKey] = useState<string>('');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const { data, isLoading } = useQuery({
     queryKey: ['eaRequests', page, pageSize, filters, sortKey, sortDir],

@@ -62,20 +62,20 @@ function DashboardRequestListContent() {
 
   const searchFields: SearchField[] = useMemo(() => [
     { key: 'requestId', label: 'Request ID', type: 'text' as const, placeholder: 'Request ID' },
-    { key: 'status', label: 'Status', type: 'select' as const, options: [
+    { key: 'status', label: 'Status', type: 'multiselect' as const, options: [
       { label: 'Draft', value: 'Draft' },
       { label: 'Submitted', value: 'Submitted' },
       { label: 'In Progress', value: 'In Progress' },
       { label: 'Completed', value: 'Completed' },
     ]},
-    { key: 'reviewResult', label: 'Review Result', type: 'select' as const, options: [
+    { key: 'reviewResult', label: 'Review Result', type: 'multiselect' as const, options: [
       { label: 'Approved', value: 'Approved' },
       { label: 'Approved with Actions', value: 'Approved with Actions' },
       { label: 'Rejected', value: 'Rejected' },
       { label: 'Accepted by EA', value: 'Accepted by EA' },
       { label: 'Returned by EA', value: 'Returned by EA' },
     ]},
-    { key: 'organization', label: 'Organization', type: 'select' as const, options: (filterOptions?.organizations ?? []).map(n => ({ label: n, value: n })) },
+    { key: 'organization', label: 'Organization', type: 'multiselect' as const, options: (filterOptions?.organizations ?? []).map(n => ({ label: n, value: n })) },
     { key: 'reviewerName', label: 'Reviewer', type: 'text' as const, placeholder: 'Reviewer IT code' },
     { key: 'requestorName', label: 'Requestor', type: 'text' as const, placeholder: 'Requestor' },
     { key: 'dateFrom', label: 'Date From', type: 'text' as const, placeholder: 'YYYY-MM-DD' },
@@ -125,7 +125,7 @@ function DashboardRequestListContent() {
       {/* Back button + title */}
       <div className="flex items-center gap-3 mb-4">
         <button
-          onClick={() => router.push('/reports/ea-review-dashboard')}
+          onClick={() => router.back()}
           className="flex items-center gap-1 text-sm text-gray-500 hover:text-primary-blue transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />

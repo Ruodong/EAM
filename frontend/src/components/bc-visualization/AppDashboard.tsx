@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { Application, CapNode } from './types';
 import { getDomainPalette } from './constants';
+import { MultiSelect } from '../ui/MultiSelect';
 
 interface AppDashboardProps {
   applications: ReadonlyArray<Application>;
@@ -20,7 +21,8 @@ function KpiCard({ label, value, colorClass = 'text-gray-900' }: { label: string
 
 export function AppDashboard({ applications, capabilities }: AppDashboardProps) {
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<'default' | 'tco-desc' | 'tco-asc'>('default');
 
   // Build capability lookup: bcId → CapNode (for tooltip descriptions)
   const capLookup = useMemo(() => {
@@ -31,8 +33,8 @@ export function AppDashboard({ applications, capabilities }: AppDashboardProps) 
     return map;
   }, [capabilities]);
 
-  const statuses = useMemo(
-    () => ['All', ...Array.from(new Set(applications.map((a) => a.appStatus).filter(Boolean)))],
+  const statusOptions = useMemo(
+    () => Array.from(new Set(applications.map((a) => a.appStatus).filter(Boolean))).map((s) => ({ label: s, value: s })),
     [applications],
   );
 
@@ -46,47 +48,64 @@ export function AppDashboard({ applications, capabilities }: AppDashboardProps) 
           a.appSolutionOwner.toLowerCase().includes(q),
       );
     }
-    if (statusFilter !== 'All') {
-      list = list.filter((a) => a.appStatus === statusFilter);
+    if (statusFilters.length > 0) {
+      list = list.filter((a) => statusFilters.includes(a.appStatus));
+    }
+    if (sortBy === 'tco-desc') {
+      list.sort((a, b) => (b.actualK ?? -1) - (a.actualK ?? -1));
+    } else if (sortBy === 'tco-asc') {
+      list.sort((a, b) => (a.actualK ?? Infinity) - (b.actualK ?? Infinity));
     }
     return list;
-  }, [applications, search, statusFilter]);
+  }, [applications, search, statusFilters, sortBy]);
 
   const activeCount = applications.filter((a) => a.appStatus === 'Active').length;
   const plannedCount = applications.filter((a) => a.appStatus === 'Planned').length;
   const totalMappings = applications.reduce((sum, a) => sum + a.capabilities.length, 0);
+  const totalTco = applications.reduce((sum, a) => sum + (a.actualK ?? 0), 0);
+  const tcoLabel = totalTco >= 1000
+    ? `$${(totalTco / 1000).toFixed(1)}M`
+    : `$${Math.round(totalTco)}K`;
 
   return (
     <div className="flex flex-col gap-4">
       {/* KPI Row */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <KpiCard label="Total Applications" value={applications.length} />
         <KpiCard label="Active" value={activeCount} colorClass="text-emerald-600" />
         <KpiCard label="Planned" value={plannedCount} colorClass="text-sky-600" />
         <KpiCard label="Total Mappings" value={totalMappings} colorClass="text-violet-600" />
+        <KpiCard label="Total Actual TCO" value={tcoLabel} colorClass="text-amber-600" />
       </div>
 
       {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex items-center gap-3">
         <input
           type="text"
           placeholder="Search applications..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="border border-gray-300 rounded px-3 py-2 text-sm w-64 focus:outline-none focus:border-primary-blue"
+          className="border border-gray-300 rounded px-3 py-2 text-sm w-48 min-w-0 focus:outline-none focus:border-primary-blue"
         />
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-primary-blue"
-        >
-          {statuses.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
-        <span className="text-xs text-gray-500">
-          {filtered.length} of {applications.length} applications
+        <MultiSelect
+          options={statusOptions}
+          value={statusFilters}
+          onChange={setStatusFilters}
+          placeholder="All Statuses"
+          maxDisplay={2}
+        />
+        <span className="text-xs text-gray-500 whitespace-nowrap">
+          {filtered.length} of {applications.length}
         </span>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as 'default' | 'tco-desc' | 'tco-asc')}
+          className="ml-auto border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-primary-blue whitespace-nowrap"
+        >
+          <option value="default">Sort: Default</option>
+          <option value="tco-desc">TCO High → Low</option>
+          <option value="tco-asc">TCO Low → High</option>
+        </select>
       </div>
 
       {/* App cards */}
@@ -107,6 +126,9 @@ export function AppDashboard({ applications, capabilities }: AppDashboardProps) 
                   {app.appItOwner && <> &middot; IT: {app.appItOwner}</>}
                   {app.ownedBy && <> &middot; Owner: {app.ownedBy}</>}
                 </p>
+                {app.appDescription && (
+                  <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{app.appDescription}</p>
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -131,6 +153,11 @@ export function AppDashboard({ applications, capabilities }: AppDashboardProps) 
                 {app.bizFunction && (
                   <span className="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium bg-cyan-50 text-cyan-700">
                     {app.bizFunction}
+                  </span>
+                )}
+                {app.actualK != null && (
+                  <span className="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-50 text-amber-700">
+                    TCO: ${app.actualK >= 1000 ? `${(app.actualK / 1000).toFixed(1)}M` : `${Math.round(app.actualK)}K`}
                   </span>
                 )}
               </div>

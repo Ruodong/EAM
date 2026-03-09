@@ -8,3 +8,7 @@ dist/
 .DS_Store
 coverage/
 .turbo/
+venv/
+__pycache__/
+*.pyc
+test-results/

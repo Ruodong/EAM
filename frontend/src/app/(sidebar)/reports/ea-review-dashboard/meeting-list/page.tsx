@@ -45,7 +45,7 @@ function DashboardMeetingListContent() {
 
   const searchFields: SearchField[] = useMemo(() => [
     { key: 'title', label: 'Meeting Title', type: 'text' as const, placeholder: 'Meeting Title' },
-    { key: 'status', label: 'Status', type: 'select' as const, options: [
+    { key: 'status', label: 'Status', type: 'multiselect' as const, options: [
       { label: 'Scheduled', value: 'Scheduled' },
       { label: 'Completed', value: 'Completed' },
       { label: 'Cancelled', value: 'Cancelled' },
@@ -95,7 +95,7 @@ function DashboardMeetingListContent() {
       {/* Back button + title */}
       <div className="flex items-center gap-3 mb-4">
         <button
-          onClick={() => router.push('/reports/ea-review-dashboard')}
+          onClick={() => router.back()}
           className="flex items-center gap-1 text-sm text-gray-500 hover:text-primary-blue transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />

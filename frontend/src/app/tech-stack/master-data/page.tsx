@@ -9,7 +9,7 @@ import { SearchForm, SearchField } from '@/components/ui/SearchForm';
 import { Plus, Upload, Download, Pencil, Trash2 } from 'lucide-react';
 
 const searchFields: SearchField[] = [
-  { key: 'category', label: 'Category', type: 'select', options: [
+  { key: 'category', label: 'Category', type: 'multiselect', options: [
     { label: 'Framework', value: 'Framework' },
     { label: 'Library', value: 'Library' },
     { label: 'Platform', value: 'Platform' },
@@ -17,7 +17,7 @@ const searchFields: SearchField[] = [
     { label: 'Language', value: 'Language' },
     { label: 'Tool', value: 'Tool' },
   ]},
-  { key: 'subCategory', label: 'Sub-Category', type: 'select', options: [
+  { key: 'subCategory', label: 'Sub-Category', type: 'multiselect', options: [
     { label: 'Gen AI', value: 'Gen AI' },
     { label: 'Frontend', value: 'Frontend' },
     { label: 'Backend', value: 'Backend' },
@@ -26,7 +26,7 @@ const searchFields: SearchField[] = [
     { label: 'Cloud', value: 'Cloud' },
     { label: 'DevOps', value: 'DevOps' },
   ]},
-  { key: 'eaAdvice', label: 'EA Advice', type: 'select', options: [
+  { key: 'eaAdvice', label: 'EA Advice', type: 'multiselect', options: [
     { label: 'Adopt', value: 'Adopt' },
     { label: 'Trial', value: 'Trial' },
     { label: 'Assess', value: 'Assess' },

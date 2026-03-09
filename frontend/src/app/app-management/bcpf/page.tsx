@@ -13,7 +13,7 @@ const searchFields: SearchField[] = [
   { key: 'domainL1', label: 'Domain L1', type: 'text', placeholder: 'Domain L1' },
   { key: 'subDomainL2', label: 'Sub Domain L2', type: 'text', placeholder: 'Sub Domain L2' },
   { key: 'bcName', label: 'BC Name', type: 'text', placeholder: 'BC Name' },
-  { key: 'level', label: 'Level', type: 'select', options: [
+  { key: 'level', label: 'Level', type: 'multiselect', options: [
     { label: 'L1', value: '1' },
     { label: 'L2', value: '2' },
     { label: 'L3', value: '3' },
@@ -33,11 +33,22 @@ export default function BCPFMasterDataPage() {
 
   const columns: Column<any>[] = [
     { key: 'bcId', title: 'BC ID', sortable: true, render: (v) => <span className="text-primary-blue font-medium">{v}</span> },
+    { key: 'parentBcId', title: 'Parent BC ID', sortable: true },
     { key: 'bcName', title: 'BC Name', sortable: true },
+    { key: 'bcNameCn', title: 'BC Name (CN)' },
     { key: 'domainL1', title: 'Domain L1', sortable: true },
     { key: 'subDomainL2', title: 'Sub Domain L2', sortable: true },
     { key: 'capabilityGroupL3', title: 'Capability Group L3', sortable: true },
     { key: 'level', title: 'Level', sortable: true },
+    { key: 'bcDescription', title: 'Description' },
+    { key: 'alias', title: 'Alias' },
+    { key: 'bizGroup', title: 'Biz Group' },
+    { key: 'geo', title: 'Geo' },
+    { key: 'bizOwner', title: 'Biz Owner' },
+    { key: 'bizTeam', title: 'Biz Team' },
+    { key: 'dtOwner', title: 'DT Owner' },
+    { key: 'dtTeam', title: 'DT Team' },
+    { key: 'remark', title: 'Remark' },
     { key: 'version', title: 'Version', sortable: true },
   ];
 

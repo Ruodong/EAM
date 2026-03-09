@@ -41,7 +41,7 @@ const searchFields: SearchField[] = [
   { key: 'appId', label: 'App ID', type: 'text', placeholder: 'Application ID' },
   { key: 'name', label: 'Name', type: 'text', placeholder: 'Name or Full Name' },
   {
-    key: 'status', label: 'Status', type: 'select',
+    key: 'status', label: 'Status', type: 'multiselect',
     options: [
       { label: 'Active', value: 'Active' },
       { label: 'Decommissioned', value: 'Decommissioned' },
@@ -50,7 +50,7 @@ const searchFields: SearchField[] = [
     ],
   },
   {
-    key: 'classification', label: 'Classification', type: 'select',
+    key: 'classification', label: 'Classification', type: 'multiselect',
     options: [
       { label: 'Business Application', value: 'Business Application' },
       { label: 'Data', value: 'Data' },
@@ -61,7 +61,7 @@ const searchFields: SearchField[] = [
     ],
   },
   {
-    key: 'solutionType', label: 'Solution Type', type: 'select',
+    key: 'solutionType', label: 'Solution Type', type: 'multiselect',
     options: [
       { label: 'Package', value: 'Package' },
       { label: 'Package+Customization', value: 'Package+Customization' },
@@ -71,7 +71,7 @@ const searchFields: SearchField[] = [
     ],
   },
   {
-    key: 'serviceArea', label: 'Service Area', type: 'select',
+    key: 'serviceArea', label: 'Service Area', type: 'multiselect',
     options: [
       'Cloud Services', 'Data', 'Development', 'Engineering', 'Eng - Hardware',
       'Eng - Software', 'Finance', 'Foundation', 'HR', 'Infrastructure & Cloud Service',
@@ -82,7 +82,7 @@ const searchFields: SearchField[] = [
     ].map(v => ({ label: v, value: v })),
   },
   {
-    key: 'ownership', label: 'App Ownership', type: 'select',
+    key: 'ownership', label: 'App Ownership', type: 'multiselect',
     options: [
       { label: 'CIO/CDTO', value: 'CIO/CDTO' },
       { label: 'LPL', value: 'LPL' },
@@ -92,7 +92,7 @@ const searchFields: SearchField[] = [
   { key: 'ownerTower', label: 'Owner Tower', type: 'text', placeholder: 'Owner Tower' },
   { key: 'ownedBy', label: 'Owned By', type: 'text', placeholder: 'Owned By' },
   {
-    key: 'portfolio', label: 'Portfolio', type: 'select',
+    key: 'portfolio', label: 'Portfolio', type: 'multiselect',
     options: [
       { label: 'Invest', value: 'Invest' },
       { label: 'Migrate', value: 'Migrate' },

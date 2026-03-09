@@ -12,7 +12,7 @@ import { ActionBar } from '@/components/ui/ActionBar';
 
 const searchFields: SearchField[] = [
   { key: 'timeFrom', label: 'Time From', type: 'date' },
-  { key: 'status', label: 'Status', type: 'select', options: [
+  { key: 'status', label: 'Status', type: 'multiselect', options: [
     { label: 'Available', value: 'Available' },
     { label: 'Booked', value: 'Booked' },
     { label: 'Expired', value: 'Expired' },

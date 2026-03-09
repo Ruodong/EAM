@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/locale';
+import { MultiSelect } from '@/components/ui/MultiSelect';
 
 /* ════════════════════════════════════════════
    Types
@@ -241,10 +242,10 @@ export default function EAReviewDashboard() {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [monthRange, setMonthRange] = useState<MonthRange>(3);
-  const [monthOrg, setMonthOrg] = useState<'all' | 'DTIT' | 'other'>('all');
-  const [requestOrg, setRequestOrg] = useState<'all' | 'DTIT' | 'other'>('all');
-  const [requestWt, setRequestWt] = useState<'all' | 'EA Office' | 'Domain Architect'>('all');
-  const [monthWt, setMonthWt] = useState<'all' | 'EA Office' | 'Domain Architect'>('all');
+  const [monthOrg, setMonthOrg] = useState<string[]>([]);
+  const [requestOrg, setRequestOrg] = useState<string[]>([]);
+  const [requestWt, setRequestWt] = useState<string[]>([]);
+  const [monthWt, setMonthWt] = useState<string[]>([]);
   const [monthlyBase, setMonthlyBase] = useState<DashboardData | null>(null);
 
   const dateRange = useMemo(() => getPresetRange(preset, customFrom, customTo), [preset, customFrom, customTo]);
@@ -255,8 +256,8 @@ export default function EAReviewDashboard() {
     try {
       const params = new URLSearchParams();
       if (dateRange) { params.set('from', dateRange.from); params.set('to', dateRange.to); }
-      if (requestOrg !== 'all') params.set('org', requestOrg);
-      if (requestWt !== 'all') params.set('workerType', requestWt);
+      if (requestOrg.length > 0) params.set('org', requestOrg.join(','));
+      if (requestWt.length > 0) params.set('workerType', requestWt.join(','));
       const r = await fetch(`/api/ea-requests/dashboard?${params}`);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       setData(await r.json());
@@ -282,8 +283,8 @@ export default function EAReviewDashboard() {
   // Fetch all-time data for monthly charts (independent of global time filter, respects org filter)
   const fetchMonthly = useCallback(() => {
     const params = new URLSearchParams();
-    if (monthOrg !== 'all') params.set('org', monthOrg);
-    if (monthWt !== 'all') params.set('workerType', monthWt);
+    if (monthOrg.length > 0) params.set('org', monthOrg.join(','));
+    if (monthWt.length > 0) params.set('workerType', monthWt.join(','));
     fetch(`/api/ea-requests/dashboard?${params}`)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d) setMonthlyBase(d); });
@@ -459,24 +460,20 @@ export default function EAReviewDashboard() {
         <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
           <h2 className="text-sm font-semibold text-gray-800">{t('Request Summary')}</h2>
           <div className="flex items-center gap-2">
-            <select
+            <MultiSelect
+              options={[{ label: 'DTIT', value: 'DTIT' }, { label: 'Other', value: 'other' }]}
               value={requestOrg}
-              onChange={e => setRequestOrg(e.target.value as 'all' | 'DTIT' | 'other')}
-              className="border border-gray-300 rounded px-2 py-1 text-xs bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-blue/30"
-            >
-              <option value="all">All Orgs</option>
-              <option value="DTIT">DTIT</option>
-              <option value="other">Other</option>
-            </select>
-            <select
+              onChange={setRequestOrg}
+              placeholder="All Orgs"
+              maxDisplay={2}
+            />
+            <MultiSelect
+              options={[{ label: 'EA Office', value: 'EA Office' }, { label: 'Domain Architect', value: 'Domain Architect' }]}
               value={requestWt}
-              onChange={e => setRequestWt(e.target.value as 'all' | 'EA Office' | 'Domain Architect')}
-              className="border border-gray-300 rounded px-2 py-1 text-xs bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-blue/30"
-            >
-              <option value="all">All Types</option>
-              <option value="EA Office">EA Office</option>
-              <option value="Domain Architect">Domain Architect</option>
-            </select>
+              onChange={setRequestWt}
+              placeholder="All Types"
+              maxDisplay={2}
+            />
             <select
               value={preset}
               onChange={e => setPreset(e.target.value as Preset)}
@@ -844,24 +841,20 @@ export default function EAReviewDashboard() {
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-gray-800">{t('Monthly Trends')}</h2>
           <div className="flex items-center gap-2">
-            <select
+            <MultiSelect
+              options={[{ label: 'DTIT', value: 'DTIT' }, { label: 'Other', value: 'other' }]}
               value={monthOrg}
-              onChange={e => setMonthOrg(e.target.value as 'all' | 'DTIT' | 'other')}
-              className="border border-gray-300 rounded px-2 py-1 text-xs bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-blue/30"
-            >
-              <option value="all">All Orgs</option>
-              <option value="DTIT">DTIT</option>
-              <option value="other">Other</option>
-            </select>
-            <select
+              onChange={setMonthOrg}
+              placeholder="All Orgs"
+              maxDisplay={2}
+            />
+            <MultiSelect
+              options={[{ label: 'EA Office', value: 'EA Office' }, { label: 'Domain Architect', value: 'Domain Architect' }]}
               value={monthWt}
-              onChange={e => setMonthWt(e.target.value as 'all' | 'EA Office' | 'Domain Architect')}
-              className="border border-gray-300 rounded px-2 py-1 text-xs bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-blue/30"
-            >
-              <option value="all">All Types</option>
-              <option value="EA Office">EA Office</option>
-              <option value="Domain Architect">Domain Architect</option>
-            </select>
+              onChange={setMonthWt}
+              placeholder="All Types"
+              maxDisplay={2}
+            />
             <select
               value={monthRange}
               onChange={e => setMonthRange(Number(e.target.value) as MonthRange)}

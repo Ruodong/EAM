@@ -3,14 +3,17 @@
 import { useState } from 'react';
 import { Search, RotateCcw } from 'lucide-react';
 import { useT } from '@/lib/locale';
+import { MultiSelect } from './MultiSelect';
 
 export interface SearchField {
   key: string;
   label: string;
-  type: 'text' | 'select' | 'date' | 'combobox';
+  type: 'text' | 'select' | 'multiselect' | 'date' | 'combobox';
   placeholder?: string;
   options?: { label: string; value: string }[];
 }
+
+type FormValues = Record<string, string | string[]>;
 
 interface SearchFormProps {
   fields: SearchField[];
@@ -21,20 +24,31 @@ interface SearchFormProps {
 
 export function SearchForm({ fields, initialValues, onSearch, onReset }: SearchFormProps) {
   const t = useT();
-  const getInitialValues = () => {
-    const vals: Record<string, string> = {};
-    fields.forEach((f) => { vals[f.key] = initialValues?.[f.key] ?? ''; });
+  const getInitialValues = (): FormValues => {
+    const vals: FormValues = {};
+    fields.forEach((f) => {
+      if (f.type === 'multiselect') {
+        vals[f.key] = initialValues?.[f.key] ? initialValues[f.key].split(',') : [];
+      } else {
+        vals[f.key] = initialValues?.[f.key] ?? '';
+      }
+    });
     return vals;
   };
 
-  const [values, setValues] = useState<Record<string, string>>(getInitialValues);
+  const [values, setValues] = useState<FormValues>(getInitialValues);
 
-  const handleChange = (key: string, value: string) => {
+  const handleChange = (key: string, value: string | string[]) => {
     setValues((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleSearch = () => {
-    onSearch(values);
+    // Flatten: join arrays as comma-separated strings for API compatibility
+    const flat: Record<string, string> = {};
+    for (const [k, v] of Object.entries(values)) {
+      flat[k] = Array.isArray(v) ? v.join(',') : v;
+    }
+    onSearch(flat);
   };
 
   const handleReset = () => {
@@ -52,9 +66,17 @@ export function SearchForm({ fields, initialValues, onSearch, onReset }: SearchF
         {fields.map((field) => (
           <div key={field.key}>
             <label className="block text-xs text-text-secondary mb-1">{t(field.label)}</label>
-            {field.type === 'select' ? (
+            {field.type === 'multiselect' ? (
+              <MultiSelect
+                options={(field.options ?? []).map((o) => ({ value: o.value, label: o.label }))}
+                value={Array.isArray(values[field.key]) ? values[field.key] as string[] : []}
+                onChange={(selected) => handleChange(field.key, selected)}
+                placeholder={field.placeholder || t('All')}
+                maxDisplay={2}
+              />
+            ) : field.type === 'select' ? (
               <select
-                value={values[field.key]}
+                value={values[field.key] as string}
                 onChange={(e) => handleChange(field.key, e.target.value)}
                 className="select-field"
               >
@@ -70,7 +92,7 @@ export function SearchForm({ fields, initialValues, onSearch, onReset }: SearchF
                 <input
                   type="text"
                   list={`datalist-${field.key}`}
-                  value={values[field.key]}
+                  value={values[field.key] as string}
                   onChange={(e) => handleChange(field.key, e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder={field.placeholder || `Select or type ${field.label}`}
@@ -87,14 +109,14 @@ export function SearchForm({ fields, initialValues, onSearch, onReset }: SearchF
             ) : field.type === 'date' ? (
               <input
                 type="date"
-                value={values[field.key]}
+                value={values[field.key] as string}
                 onChange={(e) => handleChange(field.key, e.target.value)}
                 className="input-field"
               />
             ) : (
               <input
                 type="text"
-                value={values[field.key]}
+                value={values[field.key] as string}
                 onChange={(e) => handleChange(field.key, e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={field.placeholder || `Enter ${field.label}`}
