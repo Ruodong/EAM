@@ -1,11 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { Application } from './types';
+import type { Application, CapNode } from './types';
 import { getDomainPalette } from './constants';
 
 interface AppDashboardProps {
   applications: ReadonlyArray<Application>;
+  capabilities: ReadonlyArray<CapNode>;
 }
 
 function KpiCard({ label, value, colorClass = 'text-gray-900' }: { label: string; value: string | number; colorClass?: string }) {
@@ -17,9 +18,18 @@ function KpiCard({ label, value, colorClass = 'text-gray-900' }: { label: string
   );
 }
 
-export function AppDashboard({ applications }: AppDashboardProps) {
+export function AppDashboard({ applications, capabilities }: AppDashboardProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
+
+  // Build capability lookup: bcId → CapNode (for tooltip descriptions)
+  const capLookup = useMemo(() => {
+    const map = new Map<string, CapNode>();
+    for (const cap of capabilities) {
+      map.set(cap.id, cap);
+    }
+    return map;
+  }, [capabilities]);
 
   const statuses = useMemo(
     () => ['All', ...Array.from(new Set(applications.map((a) => a.appStatus).filter(Boolean)))],
@@ -128,19 +138,33 @@ export function AppDashboard({ applications }: AppDashboardProps) {
 
             {app.capabilities.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1.5">
-                {app.capabilities.map((cap) => (
-                  <span
-                    key={cap.bcId}
-                    className="inline-block rounded-md px-2 py-1 text-xs"
-                    style={{
-                      backgroundColor: getDomainPalette(cap.lv1Domain).fill,
-                      color: getDomainPalette(cap.lv1Domain).stroke,
-                      border: `1px solid ${getDomainPalette(cap.lv1Domain).stroke}30`,
-                    }}
-                  >
-                    {cap.bcName}
-                  </span>
-                ))}
+                {app.capabilities.map((cap) => {
+                  const capNode = capLookup.get(cap.bcId);
+                  const tooltipLines = [
+                    cap.bcName,
+                    capNode?.nameCn ? `(${capNode.nameCn})` : '',
+                    `Domain: ${cap.lv1Domain}`,
+                    cap.lv2SubDomain ? `Sub-Domain: ${cap.lv2SubDomain}` : '',
+                    cap.lv3CapGroup ? `Capability Group: ${cap.lv3CapGroup}` : '',
+                    capNode?.description ? `\nDescription: ${capNode.description}` : '',
+                    capNode ? `Applications: ${capNode.appCount}` : '',
+                  ].filter(Boolean).join('\n');
+
+                  return (
+                    <span
+                      key={cap.bcId}
+                      className="inline-block rounded-md px-2 py-1 text-xs"
+                      style={{
+                        backgroundColor: getDomainPalette(cap.lv1Domain).fill,
+                        color: getDomainPalette(cap.lv1Domain).stroke,
+                        border: `1px solid ${getDomainPalette(cap.lv1Domain).stroke}30`,
+                      }}
+                      title={tooltipLines}
+                    >
+                      {cap.bcName}
+                    </span>
+                  );
+                })}
               </div>
             )}
           </div>

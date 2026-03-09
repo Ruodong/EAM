@@ -104,11 +104,11 @@ function Legend() {
 export function CapabilityDashboard({ capabilities, domains, applications }: CapabilityDashboardProps) {
   const [domainFilter, setDomainFilter] = useState<string>('All');
 
-  // Build app lookup: appId → { geo, portfolioMgt }
+  // Build app lookup: appId → full Application
   const appLookup = useMemo(() => {
-    const map = new Map<string, { geo: string; portfolioMgt: string }>();
+    const map = new Map<string, Application>();
     for (const app of applications) {
-      map.set(app.appId, { geo: app.geo, portfolioMgt: app.portfolioMgt });
+      map.set(app.appId, app);
     }
     return map;
   }, [applications]);
@@ -221,6 +221,18 @@ export function CapabilityDashboard({ capabilities, domains, applications }: Cap
                             const pColor = getPortfolioColor(portfolio);
                             const gStyle = getGeoStyle(geo);
 
+                            const tooltipLines = [
+                              meta?.appFullName && meta.appFullName !== app.name ? `Full Name: ${meta.appFullName}` : '',
+                              `Status: ${meta?.appStatus || app.status || 'N/A'}`,
+                              `Portfolio: ${portfolio || 'N/A'}`,
+                              `Geo: ${geo || 'N/A'}`,
+                              meta?.appSolutionOwner ? `Solution Owner: ${meta.appSolutionOwner}` : '',
+                              meta?.appItOwner ? `IT Owner: ${meta.appItOwner}` : '',
+                              meta?.ownedBy ? `Business Owner: ${meta.ownedBy}` : '',
+                              meta?.appOwnerTower ? `Owner Tower: ${meta.appOwnerTower}` : '',
+                              meta?.bizFunction ? `Biz Function: ${meta.bizFunction}` : '',
+                            ].filter(Boolean).join('\n');
+
                             return (
                               <span
                                 key={app.id}
@@ -232,7 +244,7 @@ export function CapabilityDashboard({ capabilities, domains, applications }: Cap
                                   borderWidth: gStyle.borderWidth,
                                   borderColor: pColor.border,
                                 }}
-                                title={`${app.name} | Portfolio: ${portfolio || 'N/A'} | Geo: ${geo || 'N/A'}`}
+                                title={tooltipLines}
                               >
                                 {app.name}
                               </span>

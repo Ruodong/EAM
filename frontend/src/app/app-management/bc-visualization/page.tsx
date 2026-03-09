@@ -85,7 +85,7 @@ export default function BCVisualizationPage() {
         />
       )}
       {activeTab === 'applications' && (
-        <AppDashboard applications={data.applications} />
+        <AppDashboard applications={data.applications} capabilities={data.capabilities} />
       )}
       {activeTab === 'capabilities' && (
         <CapabilityDashboard
