@@ -40,10 +40,26 @@ interface CmdbApp {
 const searchFields: SearchField[] = [
   { key: 'appId', label: 'App ID', type: 'text', placeholder: 'Application ID' },
   { key: 'name', label: 'Name', type: 'text', placeholder: 'Name or Full Name' },
-  { key: 'status', label: 'Status', type: 'text', placeholder: 'Status' },
+  {
+    key: 'status', label: 'Status', type: 'select', placeholder: 'All Statuses',
+    options: [
+      { label: 'Active', value: 'Active' },
+      { label: 'Decommissioned', value: 'Decommissioned' },
+      { label: 'Planned', value: 'Planned' },
+      { label: 'Retain', value: 'Retain' },
+    ],
+  },
   { key: 'ownerTower', label: 'Owner Tower', type: 'text', placeholder: 'Owner Tower' },
   { key: 'ownedBy', label: 'Owned By', type: 'text', placeholder: 'Owned By' },
-  { key: 'portfolio', label: 'Portfolio', type: 'text', placeholder: 'Portfolio' },
+  {
+    key: 'portfolio', label: 'Portfolio', type: 'select', placeholder: 'All Portfolios',
+    options: [
+      { label: 'Invest', value: 'Invest' },
+      { label: 'Migrate', value: 'Migrate' },
+      { label: 'Retire', value: 'Retire' },
+      { label: 'Tolerate', value: 'Tolerate' },
+    ],
+  },
 ];
 
 /* ── helper ── */
