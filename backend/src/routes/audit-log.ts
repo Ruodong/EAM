@@ -104,12 +104,27 @@ router.get('/email-logs/meetings', async (req: Request, res: Response) => {
       prisma.eam_meetings_email_log.count({ where }),
     ]);
 
+    // Look up project_id from meetings table when email log has null/invalid project_id
+    const meetingIds = [...new Set(data.map(l => l.meeting_id).filter(Boolean))];
+    const meetingMap: Record<string, string> = {};
+    if (meetingIds.length > 0) {
+      const meetings = await prisma.eam_meetings.findMany({
+        where: { id: { in: meetingIds } },
+        select: { id: true, project_id: true },
+      });
+      meetings.forEach(m => { meetingMap[m.id] = m.project_id; });
+    }
+
     res.json(buildPaginatedResponse(
-      data.map(l => ({
-        id: l.id, projectId: l.project_id, meetingId: l.meeting_id,
-        logTime: l.log_time, from: l.from, recipients: l.recipients,
-        subject: l.subject, status: l.status,
-      })),
+      data.map(l => {
+        const pid = l.project_id?.trim();
+        const resolvedProjectId = (pid && pid !== 'null') ? pid : (meetingMap[l.meeting_id] || null);
+        return {
+          id: l.id, projectId: resolvedProjectId, meetingId: l.meeting_id,
+          logTime: l.log_time, from: l.from, recipients: l.recipients,
+          subject: l.subject, status: l.status,
+        };
+      }),
       total, page, pageSize,
     ));
   } catch (error) {
