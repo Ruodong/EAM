@@ -4,11 +4,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Languages, User } from 'lucide-react';
 import clsx from 'clsx';
+import { useLocale, useT } from '@/lib/locale';
 
 export function Header() {
   const pathname = usePathname();
   const isHome = pathname === '/';
   const isReviewer = pathname !== '/';
+  const { locale, toggleLocale } = useLocale();
+  const t = useT();
 
   return (
     <header className="h-14 bg-white border-b border-border-light flex items-center justify-between px-4 sticky top-0 z-50">
@@ -20,7 +23,7 @@ export function Header() {
           </div>
         </Link>
         <span className="text-text-primary font-medium text-base hidden sm:block">
-          Enterprise Architecture Management
+          {t('Enterprise Architecture Management')}
         </span>
       </div>
 
@@ -35,7 +38,7 @@ export function Header() {
               : 'text-text-primary hover:text-lenovo-red'
           )}
         >
-          Home
+          {t('Home')}
         </Link>
         <Link
           href="/ea-review/request-summary"
@@ -46,16 +49,21 @@ export function Header() {
               : 'text-text-primary hover:text-lenovo-red'
           )}
         >
-          I&apos;m Reviewer
+          {t("I'm Reviewer")}
         </Link>
 
         {/* Language Switcher */}
-        <button className="p-2 hover:bg-gray-100 rounded transition-colors ml-2" title="Switch Language">
+        <button
+          onClick={toggleLocale}
+          className="p-2 hover:bg-gray-100 rounded transition-colors ml-2 flex items-center gap-1"
+          title={t('Switch Language')}
+        >
           <Languages className="w-5 h-5 text-text-secondary" />
+          <span className="text-xs text-text-secondary font-medium">{locale === 'en' ? 'EN' : '中'}</span>
         </button>
 
         {/* User Avatar */}
-        <button className="p-2 hover:bg-gray-100 rounded transition-colors" title="User Profile">
+        <button className="p-2 hover:bg-gray-100 rounded transition-colors" title={t('User Profile')}>
           <User className="w-5 h-5 text-text-secondary" />
         </button>
       </div>

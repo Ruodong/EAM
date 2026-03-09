@@ -10,6 +10,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { api } from '@/lib/api';
 import { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
+import { useT } from '@/lib/locale';
 
 interface HomeStats {
   myProjects: number;
@@ -19,6 +20,7 @@ interface HomeStats {
 }
 
 export default function HomePage() {
+  const t = useT();
   const [requestsPage, setRequestsPage] = useState(1);
   const [queuePage, setQueuePage] = useState(1);
   const [actionsPage, setActionsPage] = useState(1);
@@ -81,12 +83,12 @@ export default function HomePage() {
           <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-400 rounded-full filter blur-3xl translate-x-1/3 translate-y-1/3" />
         </div>
         <div className="relative z-10 max-w-7xl mx-auto px-6 py-16">
-          <h1 className="text-4xl font-bold mb-3">Enterprise Architecture Management</h1>
+          <h1 className="text-4xl font-bold mb-3">{t('Enterprise Architecture Management')}</h1>
           <p className="text-lg text-blue-100 mb-6 max-w-2xl">
             Streamline your enterprise architecture governance, review processes, and technology management.
           </p>
-          <Link href="/ea-review/request-summary" className="inline-flex items-center gap-2 bg-white text-blue-700 px-6 py-2.5 rounded-lg font-medium hover:bg-blue-50 transition-colors">
-            Create A Request
+          <Link href="/ea-review/request/create" className="inline-flex items-center gap-2 bg-white text-blue-700 px-6 py-2.5 rounded-lg font-medium hover:bg-blue-50 transition-colors">
+            {t('Create A Request')}
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
@@ -95,10 +97,10 @@ export default function HomePage() {
       {/* Stats Cards */}
       <section className="max-w-7xl mx-auto px-6 -mt-6 relative z-20">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatsCard label="My Projects" value={stats?.myProjects ?? 0} color="text-primary-blue" />
-          <StatsCard label="My Requests" value={stats?.myRequests ?? 0} color="text-status-in-progress" />
-          <StatsCard label="My Actions" value={stats?.myActions ?? 0} color="text-status-completed" />
-          <StatsCard label="Request Queue" value={stats?.requestQueue ?? 0} color="text-status-submitted" />
+          <StatsCard label={t('My Projects')} value={stats?.myProjects ?? 0} color="text-primary-blue" />
+          <StatsCard label={t('My Requests')} value={stats?.myRequests ?? 0} color="text-status-in-progress" />
+          <StatsCard label={t('My Actions')} value={stats?.myActions ?? 0} color="text-status-completed" />
+          <StatsCard label={t('Request Queue')} value={stats?.requestQueue ?? 0} color="text-status-submitted" />
         </div>
       </section>
 
@@ -106,9 +108,9 @@ export default function HomePage() {
       <section className="max-w-7xl mx-auto px-6 mt-8">
         <div className="bg-white rounded-lg border border-border-light">
           <div className="px-4 py-3 border-b border-border-light flex items-center justify-between">
-            <h2 className="text-base font-medium text-text-primary">My Requests</h2>
+            <h2 className="text-base font-medium text-text-primary">{t('My Requests')}</h2>
             <Link href="/ea-review/request-summary" className="text-sm text-primary-blue hover:text-primary-blue-hover">
-              View All
+              {t('View All')}
             </Link>
           </div>
           <DataTable columns={requestColumns} data={myRequests?.data ?? []} rowKey="id" loading={loadingRequests} />
@@ -129,9 +131,9 @@ export default function HomePage() {
       <section className="max-w-7xl mx-auto px-6 mt-6">
         <div className="bg-white rounded-lg border border-border-light">
           <div className="px-4 py-3 border-b border-border-light flex items-center justify-between">
-            <h2 className="text-base font-medium text-text-primary">Request Queue</h2>
+            <h2 className="text-base font-medium text-text-primary">{t('Request Queue')}</h2>
             <Link href="/ea-review/request-summary" className="text-sm text-primary-blue hover:text-primary-blue-hover">
-              View All
+              {t('View All')}
             </Link>
           </div>
           <DataTable columns={requestColumns} data={requestQueue?.data ?? []} rowKey="id" loading={loadingQueue} />
@@ -152,9 +154,9 @@ export default function HomePage() {
       <section className="max-w-7xl mx-auto px-6 mt-6">
         <div className="bg-white rounded-lg border border-border-light">
           <div className="px-4 py-3 border-b border-border-light flex items-center justify-between">
-            <h2 className="text-base font-medium text-text-primary">My Actions</h2>
+            <h2 className="text-base font-medium text-text-primary">{t('My Actions')}</h2>
             <Link href="/ea-review/actions" className="text-sm text-primary-blue hover:text-primary-blue-hover">
-              View All
+              {t('View All')}
             </Link>
           </div>
           <DataTable columns={actionColumns} data={myActions?.data ?? []} rowKey="id" loading={loadingActions} />
@@ -173,7 +175,7 @@ export default function HomePage() {
 
       {/* Recommend Links */}
       <section className="max-w-7xl mx-auto px-6 mt-8 mb-8">
-        <h2 className="text-base font-medium text-text-primary mb-4">Recommend Links</h2>
+        <h2 className="text-base font-medium text-text-primary mb-4">{t('Recommend Links')}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {recommendLinks.map((link) => (
             <Link

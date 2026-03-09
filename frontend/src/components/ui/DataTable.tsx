@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import clsx from 'clsx';
-import { ArrowUpDown, ArrowUp, ArrowDown, Settings2 } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Settings2, Download } from 'lucide-react';
+import { useT } from '@/lib/locale';
 
 export interface Column<T> {
   key: string;
@@ -12,6 +13,15 @@ export interface Column<T> {
   pinned?: 'left' | 'right';
   hidden?: boolean;
   render?: (value: any, record: T, index: number) => React.ReactNode;
+}
+
+export interface ExportConfig {
+  /** Backend entity name, e.g. "bcm", "projects", "meetings" */
+  entity: string;
+  /** Current search filters — forwarded as query params to /api/export/:entity */
+  params?: Record<string, string>;
+  /** Button label, defaults to "Export CSV" */
+  label?: string;
 }
 
 interface DataTableProps<T> {
@@ -25,7 +35,11 @@ interface DataTableProps<T> {
   onRowClick?: (record: T) => void;
   emptyText?: string;
   showColumnSettings?: boolean;
+  /** Pass this to show an Export button in the table toolbar */
+  exportConfig?: ExportConfig;
 }
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export function DataTable<T extends Record<string, any>>({
   columns,
@@ -38,9 +52,12 @@ export function DataTable<T extends Record<string, any>>({
   onRowClick,
   emptyText = 'No data',
   showColumnSettings = false,
+  exportConfig,
 }: DataTableProps<T>) {
+  const t = useT();
   const [columnSettingsOpen, setColumnSettingsOpen] = useState(false);
   const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
+  const [exporting, setExporting] = useState(false);
 
   const visibleColumns = columns.filter((col) => !col.hidden && !hiddenColumns.has(col.key));
 
@@ -65,31 +82,80 @@ export function DataTable<T extends Record<string, any>>({
     });
   };
 
+  const handleExport = async () => {
+    if (!exportConfig) return;
+    setExporting(true);
+    try {
+      const { entity, params } = exportConfig;
+      const query =
+        params && Object.keys(params).length
+          ? '?' +
+            new URLSearchParams(
+              Object.fromEntries(Object.entries(params).filter(([, v]) => v))
+            ).toString()
+          : '';
+      const res = await fetch(`${API_BASE}/export/${entity}${query}`);
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${entity}-export.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      alert('Failed to export data');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const showToolbar = showColumnSettings || !!exportConfig;
+
   return (
     <div className="relative">
-      {showColumnSettings && (
-        <div className="flex justify-end mb-2">
-          <button
-            onClick={() => setColumnSettingsOpen(!columnSettingsOpen)}
-            className="flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary px-2 py-1 rounded hover:bg-gray-50 transition-colors"
-          >
-            <Settings2 className="w-4 h-4" />
-            Columns
-          </button>
-          {columnSettingsOpen && (
-            <div className="absolute right-0 top-8 z-20 bg-white border border-border-light rounded-lg shadow-lg p-3 min-w-[200px]">
-              <div className="text-sm font-medium mb-2">Show/Hide Columns</div>
-              {columns.map((col) => (
-                <label key={col.key} className="flex items-center gap-2 py-1 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={!hiddenColumns.has(col.key)}
-                    onChange={() => toggleColumn(col.key)}
-                    className="rounded"
-                  />
-                  {col.title}
-                </label>
-              ))}
+      {showToolbar && (
+        <div className="flex justify-end items-center gap-2 mb-2">
+          {/* Export button */}
+          {exportConfig && (
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary px-2 py-1 rounded hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              <Download className="w-4 h-4" />
+              {exporting ? t('Loading...') : (exportConfig.label ?? t('Export') + ' CSV')}
+            </button>
+          )}
+
+          {/* Column settings */}
+          {showColumnSettings && (
+            <div className="relative">
+              <button
+                onClick={() => setColumnSettingsOpen(!columnSettingsOpen)}
+                className="flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary px-2 py-1 rounded hover:bg-gray-50 transition-colors"
+              >
+                <Settings2 className="w-4 h-4" />
+                {t('Column Settings')}
+              </button>
+              {columnSettingsOpen && (
+                <div className="absolute right-0 top-8 z-20 bg-white border border-border-light rounded-lg shadow-lg p-3 min-w-[200px]">
+                  <div className="text-sm font-medium mb-2">{t('Column Settings')}</div>
+                  {columns.map((col) => (
+                    <label key={col.key} className="flex items-center gap-2 py-1 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!hiddenColumns.has(col.key)}
+                        onChange={() => toggleColumn(col.key)}
+                        className="rounded"
+                      />
+                      {t(col.title)}
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -110,7 +176,7 @@ export function DataTable<T extends Record<string, any>>({
                   onClick={() => col.sortable && handleSort(col.key)}
                 >
                   <div className="flex items-center gap-1">
-                    {col.title}
+                    {t(col.title)}
                     {col.sortable && (
                       <span className="inline-flex flex-col">
                         {sortKey === col.key ? (
@@ -135,7 +201,7 @@ export function DataTable<T extends Record<string, any>>({
                 <td colSpan={visibleColumns.length} className="px-4 py-12 text-center text-text-secondary">
                   <div className="flex items-center justify-center gap-2">
                     <div className="w-5 h-5 border-2 border-primary-blue border-t-transparent rounded-full animate-spin" />
-                    Loading...
+                    {t('Loading...')}
                   </div>
                 </td>
               </tr>

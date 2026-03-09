@@ -6,6 +6,7 @@ import { ChevronDown, ChevronLeft } from 'lucide-react';
 import { useState } from 'react';
 import clsx from 'clsx';
 import { sidebarNavItems, NavItem } from '@/lib/constants';
+import { useT } from '@/lib/locale';
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -14,6 +15,7 @@ interface SidebarProps {
 
 function NavItemComponent({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
   const pathname = usePathname();
+  const t = useT();
   const hasChildren = item.children && item.children.length > 0;
   const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
   const isChildActive = hasChildren && item.children!.some(
@@ -38,7 +40,7 @@ function NavItemComponent({ item, collapsed }: { item: NavItem; collapsed: boole
           <Icon className="w-4 h-4 flex-shrink-0" />
           {!collapsed && (
             <>
-              <span className="flex-1 text-left truncate">{item.label}</span>
+              <span className="flex-1 text-left truncate">{t(item.label)}</span>
               <ChevronDown
                 className={clsx(
                   'w-3.5 h-3.5 transition-transform flex-shrink-0',
@@ -63,7 +65,7 @@ function NavItemComponent({ item, collapsed }: { item: NavItem; collapsed: boole
                       : 'text-text-secondary hover:text-text-primary hover:bg-gray-50'
                   )}
                 >
-                  {child.label}
+                  {t(child.label)}
                 </Link>
               );
             })}
@@ -84,16 +86,17 @@ function NavItemComponent({ item, collapsed }: { item: NavItem; collapsed: boole
       )}
     >
       <Icon className="w-4 h-4 flex-shrink-0" />
-      {!collapsed && <span className="truncate">{item.label}</span>}
+      {!collapsed && <span className="truncate">{t(item.label)}</span>}
     </Link>
   );
 }
 
 export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
+  const t = useT();
   return (
     <aside
       className={clsx(
-        'h-[calc(100vh-56px)] bg-white border-r border-border-light flex flex-col transition-all duration-200 sticky top-14',
+        'relative h-[calc(100vh-56px)] bg-white border-r border-border-light flex flex-col transition-all duration-200 sticky top-14',
         collapsed ? 'w-14' : 'w-sidebar'
       )}
     >
@@ -103,21 +106,19 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
         ))}
       </nav>
 
-      {/* Collapse toggle */}
-      <div className="border-t border-border-light p-2">
-        <button
-          onClick={onToggleCollapse}
-          className="w-full flex items-center justify-center p-2 hover:bg-gray-50 rounded transition-colors text-text-secondary"
-          title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-        >
-          <ChevronLeft
-            className={clsx(
-              'w-4 h-4 transition-transform',
-              collapsed && 'rotate-180'
-            )}
-          />
-        </button>
-      </div>
+      {/* Floating collapse toggle button on right edge */}
+      <button
+        onClick={onToggleCollapse}
+        title={collapsed ? t('Expand Sidebar') : t('Collapse Sidebar')}
+        className="absolute -right-3 top-6 z-50 w-6 h-6 rounded-full bg-white border border-border-light shadow-sm flex items-center justify-center hover:bg-gray-50 transition-colors text-text-secondary"
+      >
+        <ChevronLeft
+          className={clsx(
+            'w-3.5 h-3.5 transition-transform duration-200',
+            collapsed && 'rotate-180'
+          )}
+        />
+      </button>
     </aside>
   );
 }

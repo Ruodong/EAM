@@ -25,12 +25,15 @@ export default function EACalendarPage() {
   const [pageSize, setPageSize] = useState(10);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState('all');
+  const [sortKey, setSortKey] = useState<string>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   const { data, isLoading } = useQuery({
-    queryKey: ['schedules', page, pageSize, filters, activeTab],
+    queryKey: ['schedules', page, pageSize, filters, activeTab, sortKey, sortDir],
     queryFn: () => api.get<any>('/schedules', {
       page, pageSize, ...filters,
       ...(activeTab !== 'all' ? { status: activeTab } : {}),
+      sortBy: sortKey || undefined, sortOrder: sortDir,
     }),
   });
 
@@ -50,7 +53,7 @@ export default function EACalendarPage() {
     { key: 'endTime', title: 'End Time', sortable: true, render: (v) => v ? new Date(v).toLocaleString() : '-' },
     { key: 'duration', title: 'Duration (min)', sortable: true },
     { key: 'ownerName', title: 'Owner', sortable: true },
-    { key: 'createdAt', title: 'Created', sortable: true, render: (v) => v ? new Date(v).toLocaleDateString() : '-' },
+    { key: 'createdAt', title: 'Created', sortable: false, render: (v) => v ? new Date(v).toLocaleDateString() : '-' },
   ];
 
   return (
@@ -72,6 +75,9 @@ export default function EACalendarPage() {
         data={data?.data ?? []}
         rowKey="id"
         loading={isLoading}
+        sortKey={sortKey}
+        sortDirection={sortDir}
+        onSort={(key, dir) => { setSortKey(key); setSortDir(dir); }}
         showColumnSettings
       />
       {data && (

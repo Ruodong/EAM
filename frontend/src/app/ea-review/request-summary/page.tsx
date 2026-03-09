@@ -1,111 +1,90 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchForm, SearchField } from '@/components/ui/SearchForm';
-import { StatsCard } from '@/components/ui/StatsCard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { ActionBar } from '@/components/ui/ActionBar';
-
-const searchFields: SearchField[] = [
-  { key: 'projectName', label: 'Project', type: 'text', placeholder: 'Project name' },
-  { key: 'requestId', label: 'Request ID', type: 'text', placeholder: 'e.g. EA250101' },
-  { key: 'status', label: 'Status', type: 'select', options: [
-    { label: 'Draft', value: 'Draft' },
-    { label: 'Submitted', value: 'Submitted' },
-    { label: 'In Progress', value: 'In Progress' },
-    { label: 'Completed', value: 'Completed' },
-  ]},
-  { key: 'scope', label: 'Scope', type: 'select', options: [
-    { label: 'Full Review', value: 'Full Review' },
-    { label: 'Scope Check', value: 'Scope Check' },
-    { label: 'Scope of Change', value: 'Scope of Change' },
-    { label: 'Light Review', value: 'Light Review' },
-  ]},
-  { key: 'reviewResult', label: 'Review Result', type: 'select', options: [
-    { label: 'Approved', value: 'Approved' },
-    { label: 'Approved with Actions', value: 'Approved with Actions' },
-    { label: 'Rejected', value: 'Rejected' },
-    { label: 'Accepted by EA', value: 'Accepted by EA' },
-  ]},
-  { key: 'requestorName', label: 'Requestor', type: 'text', placeholder: 'Requestor name' },
-  { key: 'reviewerName', label: 'Reviewer', type: 'text', placeholder: 'Reviewer name' },
-];
+import { useT } from '@/lib/locale';
 
 export default function RequestSummaryPage() {
+  const t = useT();
+  const { data: filterOptions } = useQuery({
+    queryKey: ['ea-request-filter-options'],
+    queryFn: () => api.get<{ projects: string[]; organizations: string[] }>('/ea-requests/filter-options'),
+  });
+
+  const searchFields: SearchField[] = useMemo(() => [
+    { key: 'projectName', label: 'Project', type: 'combobox' as const, placeholder: 'Select or type Project', options: (filterOptions?.projects ?? []).map(n => ({ label: n, value: n })) },
+    { key: 'status', label: 'Request Status', type: 'select' as const, options: [
+      { label: 'Draft', value: 'Draft' },
+      { label: 'Submitted', value: 'Submitted' },
+      { label: 'In Progress', value: 'In Progress' },
+      { label: 'Completed', value: 'Completed' },
+    ]},
+    { key: 'requestId', label: 'Request ID/Name', type: 'text' as const, placeholder: 'Request ID/Name' },
+    { key: 'scope', label: 'Review Scope', type: 'select' as const, options: [
+      { label: 'All', value: 'All' },
+      { label: 'Part of Project', value: 'Part of Project' },
+      { label: 'Full Review', value: 'Full Review' },
+      { label: 'Scope Check', value: 'Scope Check' },
+      { label: 'Scope of Change', value: 'Scope of Change' },
+      { label: 'Light Review', value: 'Light Review' },
+    ]},
+    { key: 'pmName', label: 'PM', type: 'text' as const, placeholder: 'PM' },
+    { key: 'reviewResult', label: 'EA Review Result', type: 'select' as const, options: [
+      { label: 'Approved', value: 'Approved' },
+      { label: 'Approved with Actions', value: 'Approved with Actions' },
+      { label: 'Rejected', value: 'Rejected' },
+      { label: 'Accepted by EA', value: 'Accepted by EA' },
+      { label: 'Returned by EA', value: 'Returned by EA' },
+    ]},
+    { key: 'organization', label: 'Organization', type: 'select' as const, options: (filterOptions?.organizations ?? []).map(n => ({ label: n, value: n })) },
+    { key: 'requestorName', label: 'Requestor', type: 'text' as const, placeholder: 'Requestor' },
+    { key: 'reviewerName', label: 'Assigned Reviewer', type: 'text' as const, placeholder: 'Assigned Reviewer' },
+  ], [filterOptions]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [sortKey, setSortKey] = useState<string>('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
-  const { data: stats } = useQuery({
-    queryKey: ['dashboardStats'],
-    queryFn: () => api.get<any>('/dashboard/stats'),
-  });
-
   const { data, isLoading } = useQuery({
     queryKey: ['eaRequests', page, pageSize, filters, sortKey, sortDir],
     queryFn: () => api.get<any>('/ea-requests', { page, pageSize, ...filters, sortBy: sortKey || undefined, sortOrder: sortDir }),
   });
 
-  const { data: logs, isLoading: logsLoading } = useQuery({
-    queryKey: ['eaReviewLogs'],
-    queryFn: () => api.get<any>('/ea-review-logs', { page: 1, pageSize: 10 }),
-  });
-
   const columns: Column<any>[] = [
-    { key: 'requestId', title: 'Request ID', sortable: true, render: (v) => <span className="text-primary-blue font-medium">{v}</span> },
-    { key: 'status', title: 'Status', sortable: true, render: (v) => <StatusBadge status={v} /> },
-    { key: 'reviewResult', title: 'Review Result', sortable: true, render: (v) => v ? <StatusBadge status={v} variant="text" /> : '-' },
-    { key: 'scope', title: 'Scope', sortable: true },
-    { key: 'projectName', title: 'Project', sortable: true },
+    { key: 'requestId', title: 'Request ID', sortable: true, render: (v) => <Link href={`/ea-review/request/${v}`} className="text-primary-blue font-medium hover:underline">{v}</Link> },
+    { key: 'status', title: 'Request Status', sortable: true, render: (v) => <StatusBadge status={v} /> },
+    { key: 'reviewResult', title: 'EA Review Result', sortable: true, render: (v) => v || '' },
+    { key: 'projectId', title: 'Project ID', sortable: true },
+    { key: 'projectName', title: 'Project Name', sortable: true },
+    { key: 'scope', title: 'Review Scope', sortable: true },
+    { key: 'wsPhase', title: 'WS Name / Phase Name', sortable: true },
     { key: 'requestorName', title: 'Requestor', sortable: true },
-    { key: 'reviewerName', title: 'Reviewer', sortable: true },
+    { key: 'reviewerName', title: 'Assigned Reviewer', sortable: true },
     { key: 'pmName', title: 'PM', sortable: true },
-    { key: 'organization', title: 'Organization', sortable: true },
-    { key: 'createdAt', title: 'Created', sortable: true, render: (v) => v ? new Date(v).toLocaleDateString() : '-' },
-  ];
-
-  const logColumns: Column<any>[] = [
-    { key: 'projectId', title: 'Project ID', render: (v) => <span className="text-primary-blue">{v}</span> },
-    { key: 'projectName', title: 'Project Name' },
-    { key: 'user', title: 'User' },
-    { key: 'operationTime', title: 'Operation Time', render: (v) => v ? new Date(v).toLocaleString() : '-' },
-    { key: 'action', title: 'Action' },
-    { key: 'comments', title: 'Comments' },
+    { key: 'dtLeadName', title: 'DT Lead', sortable: true },
+    { key: 'changedBy', title: 'Changed By', sortable: true },
+    { key: 'changedAt', title: 'Changed At', sortable: true, render: (v) => v ? new Date(v).toLocaleDateString() : '' },
+    { key: 'createdBy', title: 'Created By', sortable: true },
+    { key: 'createdAt', title: 'Created At', sortable: true, render: (v) => v ? new Date(v).toLocaleDateString() : '' },
   ];
 
   return (
     <div className="p-6">
-      <h1 className="text-lg font-semibold text-text-primary mb-4">EA Review - Request Summary</h1>
+      <h1 className="text-lg font-semibold text-text-primary mb-4">{t('Request Summary')}</h1>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
-        <StatsCard label="Total Projects" value={stats?.totalProjects ?? 0} color="text-primary-blue" />
-        <StatsCard label="In Progress" value={stats?.inProgress ?? 0} color="text-status-in-progress" />
-        <StatsCard label="Completed" value={stats?.completed ?? 0} color="text-status-completed" />
-        <StatsCard label="Meetings" value={stats?.meetings ?? 0} color="text-primary-blue" />
-        <StatsCard label="Actions" value={stats?.actions ?? 0} color="text-status-in-progress" />
-        <StatsCard label="Pending" value={stats?.pending ?? 0} color="text-status-draft" />
-        <StatsCard label="Scope Check" value={stats?.scopeCheck ?? 0} color="text-status-submitted" />
-        <StatsCard label="Scope of Change" value={stats?.scopeOfChange ?? 0} color="text-status-accepted" />
-      </div>
-
-      {/* Search Form */}
       <SearchForm
         fields={searchFields}
         onSearch={(v) => { setFilters(v); setPage(1); }}
         onReset={() => { setFilters({}); setPage(1); }}
       />
 
-      {/* Action Bar */}
-      <ActionBar showExport showNew newLabel="New Request" />
-
-      {/* Request Table */}
       <DataTable
         columns={columns}
         data={data?.data ?? []}
@@ -115,6 +94,7 @@ export default function RequestSummaryPage() {
         sortDirection={sortDir}
         onSort={(key, dir) => { setSortKey(key); setSortDir(dir); }}
         showColumnSettings
+        exportConfig={{ entity: 'ea-requests', params: filters }}
       />
       {data && (
         <Pagination
@@ -126,17 +106,6 @@ export default function RequestSummaryPage() {
           onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
         />
       )}
-
-      {/* EA Review Log */}
-      <div className="mt-8">
-        <h2 className="text-base font-semibold text-text-primary mb-3">EA Review Log</h2>
-        <DataTable
-          columns={logColumns}
-          data={logs?.data ?? []}
-          rowKey="id"
-          loading={logsLoading}
-        />
-      </div>
     </div>
   );
 }

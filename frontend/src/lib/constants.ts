@@ -5,13 +5,13 @@ import {
   Award,
   LayoutGrid,
   Layers,
-  Server,
-  Database,
   BookOpen,
   BarChart3,
   Settings,
   HelpCircle,
+  Database,
   Shield,
+  Server,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -42,6 +42,7 @@ export const sidebarNavItems: NavItem[] = [
     icon: LayoutGrid,
     children: [
       { label: 'Business Capability Mapping', href: '/app-management/bcm', icon: LayoutGrid },
+      { label: 'Business Capability Analysis', href: '/app-management/bc-visualization', icon: LayoutGrid },
       { label: 'BCPF Master Data', href: '/app-management/bcpf', icon: LayoutGrid },
     ],
   },
@@ -50,26 +51,22 @@ export const sidebarNavItems: NavItem[] = [
     href: '/tech-stack',
     icon: Layers,
     children: [
-      { label: 'Technology Stack', href: '/tech-stack', icon: Layers },
+      { label: 'Lifecycle Management', href: '/tech-stack', icon: Layers },
       { label: 'Technology Stack Master Data', href: '/tech-stack/master-data', icon: Layers },
     ],
   },
-  { label: 'Platform Engineering', href: '/platform-engineering', icon: Server },
-  {
-    label: 'Master Data',
-    href: '/master-data',
-    icon: Database,
-    children: [
-      { label: 'Master Data', href: '/master-data', icon: Database },
-    ],
-  },
   { label: 'Resources', href: '/resources', icon: BookOpen },
+  { label: 'Master Data', href: '/master-data', icon: Database },
+  { label: 'Data Privacy', href: '/data-privacy', icon: Shield },
+  { label: 'Platform Engineering', href: '/platform-engineering', icon: Server },
   {
     label: 'Reports',
     href: '/reports',
     icon: BarChart3,
     children: [
-      { label: 'Reports', href: '/reports', icon: BarChart3 },
+      { label: 'EA Review Dashboard', href: '/reports/ea-review-dashboard', icon: BarChart3 },
+      { label: 'Email Sending Log', href: '/reports/email-log', icon: BarChart3 },
+      { label: 'Lead Time Report', href: '/reports/lead-time', icon: BarChart3 },
     ],
   },
   {
@@ -77,18 +74,13 @@ export const sidebarNavItems: NavItem[] = [
     href: '/settings',
     icon: Settings,
     children: [
-      { label: 'Settings', href: '/settings', icon: Settings },
+      { label: 'Audit Log', href: '/settings/audit-log', icon: Settings },
+      { label: 'BigEA Team Members', href: '/settings/team-members', icon: Settings },
+      { label: 'Scope Check List Template', href: '/settings/scope-checklist', icon: Settings },
+      { label: 'Scope of Change Template', href: '/settings/scope-change', icon: Settings },
     ],
   },
   { label: 'Help', href: '/help', icon: HelpCircle },
-  {
-    label: 'Data Privacy & Protection',
-    href: '/data-privacy',
-    icon: Shield,
-    children: [
-      { label: 'Data Privacy & Protection', href: '/data-privacy', icon: Shield },
-    ],
-  },
 ];
 
 export const statusColors: Record<string, string> = {

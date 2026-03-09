@@ -2,6 +2,7 @@
 
 import clsx from 'clsx';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useT } from '@/lib/locale';
 
 interface PaginationProps {
   currentPage: number;
@@ -22,6 +23,7 @@ export function Pagination({
   onPageChange,
   onPageSizeChange,
 }: PaginationProps) {
+  const t = useT();
   const getVisiblePages = () => {
     const pages: (number | string)[] = [];
     if (totalPages <= 7) {
@@ -41,7 +43,7 @@ export function Pagination({
   return (
     <div className="flex items-center justify-between px-4 py-3 border-t border-border-light bg-white">
       <div className="text-sm text-text-secondary">
-        Total {totalItems} items
+        {t('Total')} {totalItems} {t('items')}
       </div>
       <div className="flex items-center gap-2">
         <button
@@ -73,7 +75,7 @@ export function Pagination({
 
         <button
           onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
+          disabled={currentPage >= totalPages || totalPages === 0}
           className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronRight className="w-4 h-4" />
@@ -86,7 +88,7 @@ export function Pagination({
         >
           {pageSizeOptions.map((size) => (
             <option key={size} value={size}>
-              {size} / page
+              {size} {t('items per page')}
             </option>
           ))}
         </select>

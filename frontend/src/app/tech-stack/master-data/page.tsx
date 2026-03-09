@@ -6,12 +6,34 @@ import { api } from '@/lib/api';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchForm, SearchField } from '@/components/ui/SearchForm';
-import { ActionBar } from '@/components/ui/ActionBar';
+import { Plus, Upload, Download, Pencil, Trash2 } from 'lucide-react';
 
 const searchFields: SearchField[] = [
-  { key: 'name', label: 'Technology Name', type: 'text', placeholder: 'Name' },
-  { key: 'category', label: 'Category', type: 'text', placeholder: 'Category' },
-  { key: 'vendor', label: 'Vendor', type: 'text', placeholder: 'Vendor' },
+  { key: 'category', label: 'Category', type: 'select', options: [
+    { label: 'Framework', value: 'Framework' },
+    { label: 'Library', value: 'Library' },
+    { label: 'Platform', value: 'Platform' },
+    { label: 'Database', value: 'Database' },
+    { label: 'Language', value: 'Language' },
+    { label: 'Tool', value: 'Tool' },
+  ]},
+  { key: 'subCategory', label: 'Sub-Category', type: 'select', options: [
+    { label: 'Gen AI', value: 'Gen AI' },
+    { label: 'Frontend', value: 'Frontend' },
+    { label: 'Backend', value: 'Backend' },
+    { label: 'Logging', value: 'Logging' },
+    { label: 'Security', value: 'Security' },
+    { label: 'Cloud', value: 'Cloud' },
+    { label: 'DevOps', value: 'DevOps' },
+  ]},
+  { key: 'eaAdvice', label: 'EA Advice', type: 'select', options: [
+    { label: 'Adopt', value: 'Adopt' },
+    { label: 'Trial', value: 'Trial' },
+    { label: 'Assess', value: 'Assess' },
+    { label: 'Hold', value: 'Hold' },
+  ]},
+  { key: 'technologyComponent', label: 'Technology Component', type: 'text', placeholder: 'Technology Component' },
+  { key: 'componentPackageName', label: 'Component Package Name', type: 'text', placeholder: 'Component Package Name' },
 ];
 
 export default function TechStackMasterDataPage() {
@@ -25,17 +47,25 @@ export default function TechStackMasterDataPage() {
   });
 
   const columns: Column<any>[] = [
-    { key: 'name', title: 'Technology Name', sortable: true, render: (v) => <span className="text-primary-blue font-medium">{v}</span> },
+    { key: 'id', title: 'No.', sortable: true },
     { key: 'category', title: 'Category', sortable: true },
-    { key: 'vendor', title: 'Vendor', sortable: true },
+    { key: 'subCategory', title: 'Sub Category', sortable: true },
+    { key: 'technologyComponent', title: 'Technology Component', sortable: true },
+    { key: 'componentPackageName', title: 'Component Package Name', sortable: true },
+    { key: 'standard', title: 'Standard', sortable: true, render: (v) => v ? 'Yes' : 'No' },
+    { key: 'restricted', title: 'Restricted', sortable: true, render: (v) => v ? 'Yes' : 'No' },
     { key: 'version', title: 'Version', sortable: true },
-    { key: 'status', title: 'Status', sortable: true },
-    { key: 'description', title: 'Description' },
+    { key: 'operation', title: 'Operation', sortable: false, render: () => (
+      <div className="flex items-center gap-2">
+        <button className="text-text-secondary hover:text-primary-blue"><Pencil className="w-3.5 h-3.5" /></button>
+        <button className="text-text-secondary hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+      </div>
+    )},
   ];
 
   return (
     <div className="p-6">
-      <h1 className="text-lg font-semibold text-text-primary mb-4">Technology Stack Master Data</h1>
+      <h1 className="text-lg font-semibold text-text-primary mb-4">Technology Stack Version Master Data</h1>
 
       <SearchForm
         fields={searchFields}
@@ -43,7 +73,21 @@ export default function TechStackMasterDataPage() {
         onReset={() => { setFilters({}); setPage(1); }}
       />
 
-      <ActionBar showImport showExport />
+      {/* Action buttons */}
+      <div className="flex items-center gap-2 mb-3">
+        <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-primary-blue border border-primary-blue rounded hover:bg-blue-50">
+          <Plus className="w-3.5 h-3.5" />
+          New
+        </button>
+        <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-border-default rounded hover:bg-gray-50 text-text-secondary">
+          <Upload className="w-3.5 h-3.5" />
+          Import
+        </button>
+        <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-border-default rounded hover:bg-gray-50 text-text-secondary">
+          <Download className="w-3.5 h-3.5" />
+          Export
+        </button>
+      </div>
 
       <DataTable
         columns={columns}
