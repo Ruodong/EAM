@@ -8,6 +8,8 @@ from app.database import get_db
 from app.utils.pagination import PaginationParams, paginated_response
 from app.utils.filters import multi_value_condition
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 # ── Mapping helpers ──────────────────────────────────────────────
@@ -74,7 +76,7 @@ def _map_project(row) -> dict:
 
 # ── GET /api/projects ────────────────────────────────────────────
 
-@router.get("")
+@router.get("", dependencies=[Depends(require_permission("project", "read"))])
 async def list_projects(
     pagination: PaginationParams = Depends(),
     projectId: str | None = Query(None),
@@ -143,7 +145,7 @@ async def list_projects(
 
 # ── GET /api/projects/{project_id} ───────────────────────────────
 
-@router.get("/{project_id}")
+@router.get("/{project_id}", dependencies=[Depends(require_permission("project", "read"))])
 async def get_project(
     project_id: str,
     db: AsyncSession = Depends(get_db),
@@ -166,7 +168,7 @@ async def get_project(
 
 # ── POST /api/projects ───────────────────────────────────────────
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, dependencies=[Depends(require_permission("project", "write"))])
 async def create_project(
     body: dict,
     db: AsyncSession = Depends(get_db),
@@ -226,7 +228,7 @@ async def create_project(
 
 # ── PUT /api/projects/{project_id} ───────────────────────────────
 
-@router.put("/{project_id}")
+@router.put("/{project_id}", dependencies=[Depends(require_permission("project", "write"))])
 async def update_project(
     project_id: str,
     body: dict,

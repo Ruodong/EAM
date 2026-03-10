@@ -7,6 +7,8 @@ from sqlalchemy import text
 from app.database import get_db
 from app.utils.pagination import PaginationParams, paginated_response
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 FIELD_MAP = {
@@ -29,7 +31,7 @@ def _map_log(row: dict) -> dict:
     }
 
 
-@router.get("")
+@router.get("", dependencies=[Depends(require_permission("ea_review_log", "read"))])
 async def get_ea_review_logs(
     pag: PaginationParams = Depends(),
     projectId: str | None = Query(None),

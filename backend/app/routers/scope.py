@@ -6,6 +6,8 @@ from sqlalchemy import text
 
 from app.database import get_db
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 
@@ -46,7 +48,7 @@ def _map_checklist(r) -> dict:
 
 # ── GET /api/scope-of-change ────────────────────────────────────
 
-@router.get("/scope-of-change")
+@router.get("/scope-of-change", dependencies=[Depends(require_permission("scope", "read"))])
 async def list_scope_of_change(
     projectId: str | None = Query(None),
     requestId: str | None = Query(None),
@@ -85,7 +87,7 @@ async def list_scope_of_change(
 
 # ── POST /api/scope-of-change ───────────────────────────────────
 
-@router.post("/scope-of-change", status_code=201)
+@router.post("/scope-of-change", status_code=201, dependencies=[Depends(require_permission("scope", "write"))])
 async def create_scope_of_change(
     body: dict,
     db: AsyncSession = Depends(get_db),
@@ -127,7 +129,7 @@ async def create_scope_of_change(
 
 # ── PUT /api/scope-of-change/{id} ──────────────────────────────
 
-@router.put("/scope-of-change/{id}")
+@router.put("/scope-of-change/{id}", dependencies=[Depends(require_permission("scope", "write"))])
 async def update_scope_of_change(
     id: str,
     body: dict,
@@ -181,7 +183,7 @@ async def update_scope_of_change(
 
 # ── DELETE /api/scope-of-change/{id} ────────────────────────────
 
-@router.delete("/scope-of-change/{id}")
+@router.delete("/scope-of-change/{id}", dependencies=[Depends(require_permission("scope", "write"))])
 async def delete_scope_of_change(
     id: str,
     db: AsyncSession = Depends(get_db),
@@ -203,7 +205,7 @@ async def delete_scope_of_change(
 # Scope of Change Pages (sub-items)
 # ═══════════════════════════════════════════════════════════════
 
-@router.get("/scope-of-change/{id}/pages")
+@router.get("/scope-of-change/{id}/pages", dependencies=[Depends(require_permission("scope", "read"))])
 async def list_scope_pages(
     id: str,
     db: AsyncSession = Depends(get_db),
@@ -235,7 +237,7 @@ async def list_scope_pages(
 
 # ── GET /api/scope-check-list ───────────────────────────────────
 
-@router.get("/scope-check-list")
+@router.get("/scope-check-list", dependencies=[Depends(require_permission("scope", "read"))])
 async def list_scope_check_list(
     projectId: str | None = Query(None),
     requestId: str | None = Query(None),
@@ -274,7 +276,7 @@ async def list_scope_check_list(
 
 # ── POST /api/scope-check-list ──────────────────────────────────
 
-@router.post("/scope-check-list", status_code=201)
+@router.post("/scope-check-list", status_code=201, dependencies=[Depends(require_permission("scope", "write"))])
 async def create_scope_check_list(
     body: dict,
     db: AsyncSession = Depends(get_db),
@@ -333,7 +335,7 @@ async def create_scope_check_list(
 
 # ── PUT /api/scope-check-list/{id} ─────────────────────────────
 
-@router.put("/scope-check-list/{id}")
+@router.put("/scope-check-list/{id}", dependencies=[Depends(require_permission("scope", "write"))])
 async def update_scope_check_list(
     id: str,
     body: dict,
@@ -389,7 +391,7 @@ async def update_scope_check_list(
 # Templates
 # ═══════════════════════════════════════════════════════════════
 
-@router.get("/scope-of-change-templates")
+@router.get("/scope-of-change-templates", dependencies=[Depends(require_permission("scope", "read"))])
 async def list_scope_templates(
     db: AsyncSession = Depends(get_db),
 ):
@@ -414,7 +416,7 @@ async def list_scope_templates(
         raise HTTPException(status_code=500, detail="Failed to fetch scope templates")
 
 
-@router.get("/scope-check-list-templates")
+@router.get("/scope-check-list-templates", dependencies=[Depends(require_permission("scope", "read"))])
 async def list_checklist_templates(
     db: AsyncSession = Depends(get_db),
 ):

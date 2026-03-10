@@ -6,10 +6,12 @@ from sqlalchemy import text
 
 from app.database import get_db
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 
-@router.get("/stats")
+@router.get("/stats", dependencies=[Depends(require_permission("dashboard", "read"))])
 async def get_stats(db: AsyncSession = Depends(get_db)):
     try:
         results = await db.execute(text("""
@@ -39,7 +41,7 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
         return JSONResponse(status_code=500, content={"error": "Failed to fetch dashboard stats"})
 
 
-@router.get("/home-stats")
+@router.get("/home-stats", dependencies=[Depends(require_permission("dashboard", "read"))])
 async def get_home_stats(db: AsyncSession = Depends(get_db)):
     try:
         results = await db.execute(text("""

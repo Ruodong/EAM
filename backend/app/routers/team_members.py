@@ -6,6 +6,8 @@ from sqlalchemy import text
 from app.database import get_db
 from app.utils.pagination import PaginationParams, paginated_response
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 # ── Mapping helpers ──────────────────────────────────────────────
@@ -49,7 +51,7 @@ def _map_member(r) -> dict:
 
 # ── GET /api/team-members ───────────────────────────────────────
 
-@router.get("")
+@router.get("", dependencies=[Depends(require_permission("team_member", "read"))])
 async def list_team_members(
     pagination: PaginationParams = Depends(),
     itcode: str | None = Query(None),
@@ -114,7 +116,7 @@ async def list_team_members(
 
 # ── POST /api/team-members ──────────────────────────────────────
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, dependencies=[Depends(require_permission("team_member", "write"))])
 async def create_team_member(
     body: dict,
     db: AsyncSession = Depends(get_db),
@@ -159,7 +161,7 @@ async def create_team_member(
 
 # ── PUT /api/team-members/{itcode} ──────────────────────────────
 
-@router.put("/{itcode}")
+@router.put("/{itcode}", dependencies=[Depends(require_permission("team_member", "write"))])
 async def update_team_member(
     itcode: str,
     body: dict,
@@ -210,7 +212,7 @@ async def update_team_member(
 
 # ── DELETE /api/team-members/{itcode} ────────────────────────────
 
-@router.delete("/{itcode}")
+@router.delete("/{itcode}", dependencies=[Depends(require_permission("team_member", "write"))])
 async def delete_team_member(
     itcode: str,
     db: AsyncSession = Depends(get_db),

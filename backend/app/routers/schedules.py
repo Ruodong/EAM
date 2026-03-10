@@ -9,6 +9,8 @@ from app.database import get_db
 from app.utils.pagination import PaginationParams, paginated_response
 from app.utils.filters import multi_value_condition
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 # ── Sort field whitelist ────────────────────────────────────────
@@ -56,7 +58,7 @@ def _map_schedule(r) -> dict:
 
 # ── GET /api/schedules ──────────────────────────────────────────
 
-@router.get("")
+@router.get("", dependencies=[Depends(require_permission("schedule", "read"))])
 async def list_schedules(
     pagination: PaginationParams = Depends(),
     status: str | None = Query(None),
@@ -142,7 +144,7 @@ async def list_schedules(
 
 # ── POST /api/schedules ─────────────────────────────────────────
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, dependencies=[Depends(require_permission("schedule", "write"))])
 async def create_schedule(
     body: dict,
     db: AsyncSession = Depends(get_db),
@@ -231,7 +233,7 @@ async def create_schedule(
 
 # ── PUT /api/schedules/{id} ─────────────────────────────────────
 
-@router.put("/{id}")
+@router.put("/{id}", dependencies=[Depends(require_permission("schedule", "write"))])
 async def update_schedule(
     id: str,
     body: dict,
@@ -296,7 +298,7 @@ async def update_schedule(
 
 # ── DELETE /api/schedules/{id} ──────────────────────────────────
 
-@router.delete("/{id}")
+@router.delete("/{id}", dependencies=[Depends(require_permission("schedule", "write"))])
 async def delete_schedule(
     id: str,
     db: AsyncSession = Depends(get_db),

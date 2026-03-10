@@ -7,6 +7,8 @@ from sqlalchemy import text
 from app.database import get_db
 from app.utils.pagination import PaginationParams, paginated_response
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 
@@ -22,7 +24,7 @@ def _isoformat_or_none(val) -> str | None:
 
 # ── GET /api/reports/lead-time ───────────────────────────────────
 
-@router.get("/lead-time")
+@router.get("/lead-time", dependencies=[Depends(require_permission("report", "read"))])
 async def lead_time_report(
     pagination: PaginationParams = Depends(),
     projectId: str | None = Query(None),

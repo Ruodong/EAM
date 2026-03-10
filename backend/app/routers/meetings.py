@@ -9,6 +9,8 @@ from app.database import get_db
 from app.utils.pagination import PaginationParams, paginated_response
 from app.utils.filters import multi_value_condition
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 # ── Sort field whitelist ────────────────────────────────────────
@@ -62,7 +64,7 @@ def _map_meeting(r) -> dict:
 
 # ── GET /api/meetings ───────────────────────────────────────────
 
-@router.get("")
+@router.get("", dependencies=[Depends(require_permission("meeting", "read"))])
 async def list_meetings(
     pagination: PaginationParams = Depends(),
     title: str | None = Query(None),
@@ -173,7 +175,7 @@ async def list_meetings(
 
 # ── GET /api/meetings/{meetingNo} ───────────────────────────────
 
-@router.get("/{meetingNo}")
+@router.get("/{meetingNo}", dependencies=[Depends(require_permission("meeting", "read"))])
 async def get_meeting(
     meetingNo: int,
     db: AsyncSession = Depends(get_db),
@@ -196,7 +198,7 @@ async def get_meeting(
 
 # ── POST /api/meetings ──────────────────────────────────────────
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, dependencies=[Depends(require_permission("meeting", "write"))])
 async def create_meeting(
     body: dict,
     db: AsyncSession = Depends(get_db),
@@ -286,7 +288,7 @@ async def create_meeting(
 
 # ── PUT /api/meetings/{meetingNo} ───────────────────────────────
 
-@router.put("/{meetingNo}")
+@router.put("/{meetingNo}", dependencies=[Depends(require_permission("meeting", "write"))])
 async def update_meeting(
     meetingNo: int,
     body: dict,

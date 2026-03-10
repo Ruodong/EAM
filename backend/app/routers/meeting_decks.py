@@ -7,6 +7,8 @@ from sqlalchemy import text
 
 from app.database import get_db
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 
@@ -17,7 +19,7 @@ class CreateMeetingDeckBody(BaseModel):
 
 
 # GET /api/meeting-decks?meetingId= -- List decks for a meeting
-@router.get("")
+@router.get("", dependencies=[Depends(require_permission("meeting_deck", "read"))])
 async def get_meeting_decks(
     meetingId: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
@@ -50,7 +52,7 @@ async def get_meeting_decks(
 
 
 # POST /api/meeting-decks -- Add deck reference
-@router.post("", status_code=201)
+@router.post("", status_code=201, dependencies=[Depends(require_permission("meeting_deck", "write"))])
 async def create_meeting_deck(
     body: CreateMeetingDeckBody,
     db: AsyncSession = Depends(get_db),
@@ -86,7 +88,7 @@ async def create_meeting_deck(
 
 
 # DELETE /api/meeting-decks/:id -- Remove deck
-@router.delete("/{deck_id}")
+@router.delete("/{deck_id}", dependencies=[Depends(require_permission("meeting_deck", "write"))])
 async def delete_meeting_deck(
     deck_id: str,
     db: AsyncSession = Depends(get_db),

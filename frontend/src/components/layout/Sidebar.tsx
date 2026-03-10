@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronDown, ChevronLeft } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import clsx from 'clsx';
 import { sidebarNavItems, NavItem } from '@/lib/constants';
 import { useT } from '@/lib/locale';
+import { useAuth } from '@/lib/auth-context';
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -91,8 +92,33 @@ function NavItemComponent({ item, collapsed }: { item: NavItem; collapsed: boole
   );
 }
 
+/** Filter nav items based on user permissions. */
+function filterNavItems(items: NavItem[], hasPermission: (r: string, s?: string) => boolean): NavItem[] {
+  return items
+    .filter((item) => {
+      // No permission requirement — always visible
+      if (!item.requiredResource) return true;
+      return hasPermission(item.requiredResource, item.requiredScope || 'read');
+    })
+    .map((item) => {
+      if (!item.children) return item;
+      const filteredChildren = filterNavItems(item.children, hasPermission);
+      // Hide parent if all children are filtered out
+      if (filteredChildren.length === 0) return null;
+      return { ...item, children: filteredChildren };
+    })
+    .filter(Boolean) as NavItem[];
+}
+
 export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
   const t = useT();
+  const { hasPermission } = useAuth();
+
+  const visibleItems = useMemo(
+    () => filterNavItems(sidebarNavItems, hasPermission),
+    [hasPermission]
+  );
+
   return (
     <aside
       className={clsx(
@@ -101,7 +127,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
       )}
     >
       <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
-        {sidebarNavItems.map((item) => (
+        {visibleItems.map((item) => (
           <NavItemComponent key={item.href + item.label} item={item} collapsed={collapsed} />
         ))}
       </nav>

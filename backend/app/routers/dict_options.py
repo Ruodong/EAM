@@ -6,10 +6,12 @@ from sqlalchemy import text
 
 from app.database import get_db
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 
-@router.get("")
+@router.get("", dependencies=[Depends(require_permission("dict_option", "read"))])
 async def get_dict_options(
     categoryId: int | None = Query(None),
     lang: str | None = Query(None),
@@ -51,7 +53,7 @@ async def get_dict_options(
         return JSONResponse(status_code=500, content={"error": "Failed to fetch dict options"})
 
 
-@router.get("/categories")
+@router.get("/categories", dependencies=[Depends(require_permission("dict_option", "read"))])
 async def get_categories(db: AsyncSession = Depends(get_db)):
     try:
         result = await db.execute(

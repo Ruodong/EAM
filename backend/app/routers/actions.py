@@ -8,6 +8,8 @@ from app.database import get_db
 from app.utils.pagination import PaginationParams, paginated_response
 from app.utils.filters import multi_value_condition
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 # ── Sort field whitelist ────────────────────────────────────────
@@ -65,7 +67,7 @@ def _map_action(r) -> dict:
 
 # ── GET /api/actions ────────────────────────────────────────────
 
-@router.get("")
+@router.get("", dependencies=[Depends(require_permission("action", "read"))])
 async def list_actions(
     pagination: PaginationParams = Depends(),
     title: str | None = Query(None),
@@ -213,7 +215,7 @@ async def list_actions(
 
 # ── GET /api/actions/{actionNo} ─────────────────────────────────
 
-@router.get("/{actionNo}")
+@router.get("/{actionNo}", dependencies=[Depends(require_permission("action", "read"))])
 async def get_action(
     actionNo: int,
     db: AsyncSession = Depends(get_db),
@@ -236,7 +238,7 @@ async def get_action(
 
 # ── POST /api/actions ───────────────────────────────────────────
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, dependencies=[Depends(require_permission("action", "write"))])
 async def create_action(
     body: dict,
     db: AsyncSession = Depends(get_db),
@@ -302,7 +304,7 @@ async def create_action(
 
 # ── PUT /api/actions/{actionNo} ─────────────────────────────────
 
-@router.put("/{actionNo}")
+@router.put("/{actionNo}", dependencies=[Depends(require_permission("action", "write"))])
 async def update_action(
     actionNo: int,
     body: dict,
@@ -384,7 +386,7 @@ async def update_action(
 
 # ── DELETE /api/actions/{actionNo} ──────────────────────────────
 
-@router.delete("/{actionNo}")
+@router.delete("/{actionNo}", dependencies=[Depends(require_permission("action", "write"))])
 async def delete_action(
     actionNo: int,
     db: AsyncSession = Depends(get_db),

@@ -19,6 +19,10 @@ export interface NavItem {
   href: string;
   icon: any;
   children?: NavItem[];
+  /** Required permission resource (e.g. "settings"). If omitted, visible to all. */
+  requiredResource?: string;
+  /** Required permission scope (default: "read") */
+  requiredScope?: string;
 }
 
 export const sidebarNavItems: NavItem[] = [
@@ -74,11 +78,12 @@ export const sidebarNavItems: NavItem[] = [
     label: 'Settings',
     href: '/settings',
     icon: Settings,
+    requiredResource: 'settings',
     children: [
-      { label: 'Audit Log', href: '/settings/audit-log', icon: Settings },
-      { label: 'BigEA Team Members', href: '/settings/team-members', icon: Settings },
-      { label: 'Scope Check List Template', href: '/settings/scope-checklist', icon: Settings },
-      { label: 'Scope of Change Template', href: '/settings/scope-change', icon: Settings },
+      { label: 'Audit Log', href: '/settings/audit-log', icon: Settings, requiredResource: 'settings' },
+      { label: 'BigEA Team Members', href: '/settings/team-members', icon: Settings, requiredResource: 'team_member', requiredScope: 'write' },
+      { label: 'Scope Check List Template', href: '/settings/scope-checklist', icon: Settings, requiredResource: 'settings' },
+      { label: 'Scope of Change Template', href: '/settings/scope-change', icon: Settings, requiredResource: 'settings' },
     ],
   },
   { label: 'Help', href: '/help', icon: HelpCircle },

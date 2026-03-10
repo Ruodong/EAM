@@ -6,6 +6,8 @@ from sqlalchemy import text
 from app.database import get_db
 from app.utils.pagination import PaginationParams, paginated_response
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 # ── Mapping helpers ──────────────────────────────────────────────
@@ -46,7 +48,7 @@ def _map_resource(r) -> dict:
 # literal paths take precedence over path params at the same level, but
 # we keep it first for clarity.
 
-@router.get("/search")
+@router.get("/search", dependencies=[Depends(require_permission("resource", "read"))])
 async def search_resources(
     q: str = Query(""),
     db: AsyncSession = Depends(get_db),
@@ -85,7 +87,7 @@ async def search_resources(
 
 # ── GET /api/resources — Paginated list with filters ─────────────
 
-@router.get("")
+@router.get("", dependencies=[Depends(require_permission("resource", "read"))])
 async def list_resources(
     pagination: PaginationParams = Depends(),
     itcode: str | None = Query(None),

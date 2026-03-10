@@ -6,6 +6,8 @@ from sqlalchemy import text
 from app.database import get_db
 from app.utils.pagination import PaginationParams, paginated_response
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 # ── Sort field whitelist for audit log ──────────────────────────
@@ -23,7 +25,7 @@ AUDIT_ALLOWED_SORT_FIELDS = set(AUDIT_SORT_FIELD_MAP.values()) | {
 # Audit Log (Field Change Log)
 # ═══════════════════════════════════════════════════════════════
 
-@router.get("/audit-log")
+@router.get("/audit-log", dependencies=[Depends(require_permission("settings", "read"))])
 async def list_audit_log(
     pagination: PaginationParams = Depends(),
     projectId: str | None = Query(None),
@@ -101,7 +103,7 @@ async def list_audit_log(
 # Process Log
 # ═══════════════════════════════════════════════════════════════
 
-@router.get("/process-logs")
+@router.get("/process-logs", dependencies=[Depends(require_permission("settings", "read"))])
 async def list_process_logs(
     requestId: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
@@ -142,7 +144,7 @@ async def list_process_logs(
 # Email Logs — Actions
 # ═══════════════════════════════════════════════════════════════
 
-@router.get("/email-logs/actions")
+@router.get("/email-logs/actions", dependencies=[Depends(require_permission("settings", "read"))])
 async def list_action_email_logs(
     pagination: PaginationParams = Depends(),
     projectId: str | None = Query(None),
@@ -202,7 +204,7 @@ async def list_action_email_logs(
 # Email Logs — Meetings
 # ═══════════════════════════════════════════════════════════════
 
-@router.get("/email-logs/meetings")
+@router.get("/email-logs/meetings", dependencies=[Depends(require_permission("settings", "read"))])
 async def list_meeting_email_logs(
     pagination: PaginationParams = Depends(),
     projectId: str | None = Query(None),

@@ -9,6 +9,8 @@ from sqlalchemy import text
 
 from app.database import get_db
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 
@@ -16,7 +18,7 @@ router = APIRouter()
 # GET /bcm/visualization — BCM data in visualization-ready format
 # ---------------------------------------------------------------------------
 
-@router.get("/bcm/visualization")
+@router.get("/bcm/visualization", dependencies=[Depends(require_permission("bcm", "read"))])
 async def bcm_visualization(
     db: AsyncSession = Depends(get_db),
     version: str | None = Query(None),

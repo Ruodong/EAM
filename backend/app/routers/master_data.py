@@ -7,6 +7,8 @@ from sqlalchemy import text
 
 from app.database import get_db
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE)
@@ -14,7 +16,7 @@ UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
 
 # ---- Data Classification ------------------------------------------------
 
-@router.get("/data-classification")
+@router.get("/data-classification", dependencies=[Depends(require_permission("master_data", "read"))])
 async def get_data_classification(db: AsyncSession = Depends(get_db)):
     try:
         result = await db.execute(
@@ -43,7 +45,7 @@ async def get_data_classification(db: AsyncSession = Depends(get_db)):
 
 # ---- Data Centers --------------------------------------------------------
 
-@router.get("/data-centers")
+@router.get("/data-centers", dependencies=[Depends(require_permission("master_data", "read"))])
 async def get_data_centers(db: AsyncSession = Depends(get_db)):
     try:
         result = await db.execute(
@@ -66,7 +68,7 @@ async def get_data_centers(db: AsyncSession = Depends(get_db)):
 
 # ---- Companies -----------------------------------------------------------
 
-@router.get("/companies")
+@router.get("/companies", dependencies=[Depends(require_permission("master_data", "read"))])
 async def get_companies(
     search: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
@@ -102,7 +104,7 @@ async def get_companies(
 
 # ---- Legal Entities ------------------------------------------------------
 
-@router.get("/legal-entities")
+@router.get("/legal-entities", dependencies=[Depends(require_permission("master_data", "read"))])
 async def get_legal_entities(
     appId: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
@@ -140,7 +142,7 @@ async def get_legal_entities(
 
 # ---- Help Files ----------------------------------------------------------
 
-@router.get("/help-files")
+@router.get("/help-files", dependencies=[Depends(require_permission("master_data", "read"))])
 async def get_help_files(db: AsyncSession = Depends(get_db)):
     try:
         result = await db.execute(

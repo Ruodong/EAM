@@ -7,6 +7,8 @@ from app.database import get_db
 from app.utils.pagination import PaginationParams, paginated_response
 from app.utils.filters import multi_value_condition
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 # ── Mapping helpers ──────────────────────────────────────────────
@@ -56,7 +58,7 @@ def _map_tech_stack(r) -> dict:
 
 # ── GET /api/technology-stack ────────────────────────────────────
 
-@router.get("")
+@router.get("", dependencies=[Depends(require_permission("tech_stack", "read"))])
 async def list_technology_stack(
     pagination: PaginationParams = Depends(),
     component: str | None = Query(None),

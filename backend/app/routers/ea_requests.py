@@ -12,6 +12,7 @@ from sqlalchemy import text
 from app.database import get_db
 from app.utils.pagination import PaginationParams, paginated_response
 from app.utils.filters import multi_value_condition
+from app.auth import require_permission, require_role, Role
 
 router = APIRouter()
 
@@ -102,7 +103,7 @@ SORT_FIELD_MAP: dict[str, str] = {
 # GET / — List with pagination, filtering, sorting
 # ---------------------------------------------------------------------------
 
-@router.get("")
+@router.get("", dependencies=[Depends(require_permission("ea_request", "read"))])
 async def list_requests(
     pag: PaginationParams = Depends(),
     db: AsyncSession = Depends(get_db),
@@ -260,7 +261,7 @@ async def list_requests(
 # MUST be before /{id} to avoid being caught by the path param route
 # ---------------------------------------------------------------------------
 
-@router.get("/dashboard")
+@router.get("/dashboard", dependencies=[Depends(require_permission("ea_request", "read"))])
 async def dashboard(
     db: AsyncSession = Depends(get_db),
     # query params use 'from' which is a Python keyword, alias via Query
@@ -685,7 +686,7 @@ async def dashboard(
 # MUST be before /{id}
 # ---------------------------------------------------------------------------
 
-@router.get("/filter-options")
+@router.get("/filter-options", dependencies=[Depends(require_permission("ea_request", "read"))])
 async def filter_options(db: AsyncSession = Depends(get_db)):
     try:
         proj_result = await db.execute(text(
@@ -713,7 +714,7 @@ async def filter_options(db: AsyncSession = Depends(get_db)):
 # GET /{id} — Get single request by request_id (string, NOT UUID)
 # ---------------------------------------------------------------------------
 
-@router.get("/{id}")
+@router.get("/{id}", dependencies=[Depends(require_permission("ea_request", "read"))])
 async def get_request(id: str, db: AsyncSession = Depends(get_db)):
     try:
         data_result = await db.execute(
@@ -798,7 +799,7 @@ async def get_request(id: str, db: AsyncSession = Depends(get_db)):
 # POST / — Create new EA request
 # ---------------------------------------------------------------------------
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, dependencies=[Depends(require_permission("ea_request", "write"))])
 async def create_request(body: dict, db: AsyncSession = Depends(get_db)):
     try:
         project_id = body.get("projectId")
@@ -868,7 +869,7 @@ async def create_request(body: dict, db: AsyncSession = Depends(get_db)):
 # PUT /{id} — Update EA request
 # ---------------------------------------------------------------------------
 
-@router.put("/{id}")
+@router.put("/{id}", dependencies=[Depends(require_permission("ea_request", "write"))])
 async def update_request(id: str, body: dict, db: AsyncSession = Depends(get_db)):
     try:
         # Find existing
@@ -953,7 +954,7 @@ async def update_request(id: str, body: dict, db: AsyncSession = Depends(get_db)
 # DELETE /{id} — Soft delete (set status to 'Deleted')
 # ---------------------------------------------------------------------------
 
-@router.delete("/{id}")
+@router.delete("/{id}", dependencies=[Depends(require_permission("ea_request", "write"))])
 async def delete_request(id: str, db: AsyncSession = Depends(get_db)):
     try:
         existing_result = await db.execute(

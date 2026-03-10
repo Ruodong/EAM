@@ -11,6 +11,8 @@ from sqlalchemy import text
 from app.database import get_db
 from app.utils.csv_export import build_csv_response, sanitize_cell
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 
@@ -34,7 +36,7 @@ def _join_array(val: Any) -> str:
 # GET /{entity} — CSV export
 # ---------------------------------------------------------------------------
 
-@router.get("/{entity}")
+@router.get("/{entity}", dependencies=[Depends(require_permission("export", "execute"))])
 async def export_entity(
     entity: str,
     db: AsyncSession = Depends(get_db),

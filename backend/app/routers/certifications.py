@@ -8,6 +8,8 @@ from app.database import get_db
 from app.utils.pagination import PaginationParams, paginated_response
 from app.utils.filters import multi_value_condition
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 # Maps camelCase front-end sort fields to DB column names
@@ -41,7 +43,7 @@ def _map_cert(row: dict) -> dict:
     }
 
 
-@router.get("")
+@router.get("", dependencies=[Depends(require_permission("certification", "read"))])
 async def get_certifications(
     pag: PaginationParams = Depends(),
     name: str | None = Query(None),

@@ -11,6 +11,8 @@ from app.database import get_db
 from app.utils.pagination import PaginationParams, paginated_response
 from app.utils.filters import multi_value_condition
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 
@@ -71,7 +73,7 @@ SORT_COLUMNS: dict[str, str] = {
 # GET / — paginated list with search & sort
 # ---------------------------------------------------------------------------
 
-@router.get("")
+@router.get("", dependencies=[Depends(require_permission("cmdb", "read"))])
 async def list_cmdb(
     pag: PaginationParams = Depends(),
     db: AsyncSession = Depends(get_db),
@@ -152,7 +154,7 @@ async def list_cmdb(
 # GET /{app_id} — single record detail
 # ---------------------------------------------------------------------------
 
-@router.get("/{app_id}")
+@router.get("/{app_id}", dependencies=[Depends(require_permission("cmdb", "read"))])
 async def get_cmdb_detail(app_id: str, db: AsyncSession = Depends(get_db)):
     try:
         result = await db.execute(

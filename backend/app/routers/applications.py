@@ -10,6 +10,8 @@ from sqlalchemy import text
 from app.database import get_db
 from app.utils.pagination import PaginationParams, paginated_response
 
+from app.auth import require_permission, require_role, Role
+
 router = APIRouter()
 
 
@@ -45,7 +47,7 @@ APP_SORT_FIELDS: dict[str, str] = {
 # GET / — paginated list of applications
 # ---------------------------------------------------------------------------
 
-@router.get("")
+@router.get("", dependencies=[Depends(require_permission("application", "read"))])
 async def list_applications(
     pag: PaginationParams = Depends(),
     db: AsyncSession = Depends(get_db),
@@ -102,7 +104,7 @@ async def list_applications(
 # MUST be before /bcm to avoid ambiguity and before /bcm/{subpath}
 # ---------------------------------------------------------------------------
 
-@router.get("/bcm/versions")
+@router.get("/bcm/versions", dependencies=[Depends(require_permission("application", "read"))])
 async def bcm_versions(db: AsyncSession = Depends(get_db)):
     try:
         result = await db.execute(
@@ -117,7 +119,7 @@ async def bcm_versions(db: AsyncSession = Depends(get_db)):
 # GET /bcm/bc-tree — BCPF master data for cascader/search
 # ---------------------------------------------------------------------------
 
-@router.get("/bcm/bc-tree")
+@router.get("/bcm/bc-tree", dependencies=[Depends(require_permission("application", "read"))])
 async def bcm_bc_tree(
     db: AsyncSession = Depends(get_db),
     version: str | None = Query(None),
@@ -171,7 +173,7 @@ async def bcm_bc_tree(
 # GET /bcm — Business Capability Mapping list (paginated)
 # ---------------------------------------------------------------------------
 
-@router.get("/bcm")
+@router.get("/bcm", dependencies=[Depends(require_permission("application", "read"))])
 async def bcm_list(
     pag: PaginationParams = Depends(),
     db: AsyncSession = Depends(get_db),
