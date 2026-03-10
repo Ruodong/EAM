@@ -4,6 +4,7 @@ import { useState } from 'react';
 import clsx from 'clsx';
 import { ArrowUpDown, ArrowUp, ArrowDown, Settings2, Download } from 'lucide-react';
 import { useT } from '@/lib/locale';
+import { fetchBlob } from '@/lib/api';
 
 export interface Column<T> {
   key: string;
@@ -94,9 +95,7 @@ export function DataTable<T extends Record<string, any>>({
               Object.fromEntries(Object.entries(params).filter(([, v]) => v))
             ).toString()
           : '';
-      const res = await fetch(`${API_BASE}/export/${entity}${query}`);
-      if (!res.ok) throw new Error('Export failed');
-      const blob = await res.blob();
+      const blob = await fetchBlob(`${API_BASE}/export/${entity}${query}`);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

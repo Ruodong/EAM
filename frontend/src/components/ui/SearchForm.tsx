@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, RotateCcw } from 'lucide-react';
 import { useT } from '@/lib/locale';
 import { MultiSelect } from './MultiSelect';
@@ -24,19 +24,37 @@ interface SearchFormProps {
 
 export function SearchForm({ fields, initialValues, onSearch, onReset }: SearchFormProps) {
   const t = useT();
-  const getInitialValues = (): FormValues => {
+
+  // Stable serialisation of initialValues for dependency tracking
+  const initialValuesKey = useMemo(
+    () => JSON.stringify(initialValues ?? {}),
+    [initialValues]
+  );
+
+  const buildFormValues = (iv?: Record<string, string>): FormValues => {
     const vals: FormValues = {};
     fields.forEach((f) => {
       if (f.type === 'multiselect') {
-        vals[f.key] = initialValues?.[f.key] ? initialValues[f.key].split(',') : [];
+        vals[f.key] = iv?.[f.key] ? iv[f.key].split(',') : [];
       } else {
-        vals[f.key] = initialValues?.[f.key] ?? '';
+        vals[f.key] = iv?.[f.key] ?? '';
       }
     });
     return vals;
   };
 
-  const [values, setValues] = useState<FormValues>(getInitialValues);
+  const [values, setValues] = useState<FormValues>(() => buildFormValues(initialValues));
+
+  // Sync form state when initialValues change (e.g. URL-derived filters)
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    setValues(buildFormValues(initialValues));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialValuesKey]);
 
   const handleChange = (key: string, value: string | string[]) => {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -52,7 +70,12 @@ export function SearchForm({ fields, initialValues, onSearch, onReset }: SearchF
   };
 
   const handleReset = () => {
-    setValues(getInitialValues());
+    // Reset to empty defaults (not initialValues) so URL filters are cleared
+    const empty: FormValues = {};
+    fields.forEach((f) => {
+      empty[f.key] = f.type === 'multiselect' ? [] : '';
+    });
+    setValues(empty);
     onReset();
   };
 

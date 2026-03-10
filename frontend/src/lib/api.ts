@@ -1,9 +1,15 @@
+import { authHeaders } from '@/lib/auth-token';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${endpoint}`, {
-    headers: { 'Content-Type': 'application/json' },
     ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders(),
+      ...options?.headers,
+    },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
@@ -30,3 +36,15 @@ export const api = {
   delete: <T>(endpoint: string) =>
     fetchApi<T>(endpoint, { method: 'DELETE' }),
 };
+
+/**
+ * Fetch a blob (e.g. CSV export) with auth headers included.
+ * Use this instead of raw fetch() for authenticated file downloads.
+ */
+export async function fetchBlob(url: string): Promise<Blob> {
+  const res = await fetch(url, {
+    headers: { ...authHeaders() },
+  });
+  if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+  return res.blob();
+}

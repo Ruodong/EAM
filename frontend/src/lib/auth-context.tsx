@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
+import { authHeaders } from '@/lib/auth-token';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -49,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       setError(null);
       const res = await fetch(`${API_BASE}/auth/me`, {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
       });
       if (!res.ok) {
         throw new Error(`Auth failed: ${res.status}`);

@@ -2,7 +2,7 @@
 
 ## 背景
 
-EAM 系统采用前后端分离架构：`frontend`（Next.js 15）+ `backend`（FastAPI + SQLAlchemy async）。后端已从 TypeScript (Express + Prisma) 完整迁移到 Python，共 22 个 router 模块、5,654 行 Python 代码。数据库 schema 文档保留在 `docs/schema.prisma`。
+EAM 系统采用前后端分离架构：`frontend`（Next.js 15）+ `backend`（FastAPI + SQLAlchemy async）。后端已从 TypeScript (Express + Prisma) 完整迁移到 Python，共 23 个 router 模块（含 auth）、~6,100+ 行 Python 代码。认证授权框架已建设完成（RBAC + AuthMiddleware + 81 个端点权限接入）。数据库 schema 文档保留在 `docs/schema.prisma`。
 
 当前所有开发在 `main` 分支上进行，无 CI/CD 流水线。团队成员各自使用 Claude Code / Codex 模式开发，需要模块边界清晰、冲突最小化。
 
@@ -122,29 +122,54 @@ EAM 系统采用前后端分离架构：`frontend`（Next.js 15）+ `backend`（
 
 ---
 
-### 模块 D：用户与权限（待建设）
+### 模块 D：用户与权限 ✅ 已建设完成
 
-**范围：** 认证、用户管理、权限管理、团队成员
+**范围：** 认证中间件、RBAC 权限矩阵、SSO 集成、用户管理、团队成员
 
-| 层 | 文件 | 行数 |
-|---|------|------|
-| Backend | `app/routers/team_members.py` | 233 |
-| Backend | `app/routers/resources.py` | 148 |
-| Frontend | `(sidebar)/settings/team-members/page.tsx` | 173 |
-| Frontend | `(sidebar)/resources/page.tsx` | 66 |
-| **待建设** | 认证中间件、RBAC、SSO 集成 | — |
-| **后端小计** | | **381 行** |
-| **前端小计** | | **~239 行** |
+| 层 | 文件 | 行数 | 状态 |
+|---|------|------|------|
+| Backend | `app/auth/__init__.py` | 6 | ✅ 新建 |
+| Backend | `app/auth/models.py` | ~30 | ✅ 新建 — Role enum + AuthUser |
+| Backend | `app/auth/rbac.py` | ~60 | ✅ 新建 — ROLE_PERMISSIONS 矩阵 |
+| Backend | `app/auth/providers.py` | ~200 | ✅ 新建 — DevAuthProvider + KeycloakAuthProvider (JWKS 验签) |
+| Backend | `app/auth/middleware.py` | ~76 | ✅ 新建 — AuthMiddleware |
+| Backend | `app/auth/dependencies.py` | ~97 | ✅ 新建 — require_auth / require_role / require_permission |
+| Backend | `app/routers/auth.py` | ~40 | ✅ 新建 — /api/auth/me + /api/auth/permissions |
+| Backend | `app/routers/team_members.py` | 233 | 已有 |
+| Backend | `app/routers/resources.py` | 148 | 已有 |
+| Frontend | `src/lib/auth-context.tsx` | ~132 | ✅ 新建 — AuthProvider + useAuth + usePermission |
+| Frontend | `src/lib/auth-token.ts` | ~30 | ✅ 新建 — Token 管理 (setAuthToken / authHeaders) |
+| Frontend | `src/components/ui/PermissionGate.tsx` | ~35 | ✅ 新建 — 权限门控组件 |
+| Frontend | `(sidebar)/settings/team-members/page.tsx` | 173 | 已有 |
+| Frontend | `(sidebar)/resources/page.tsx` | 66 | 已有 |
+| **后端小计** | | **~890 行** |
+| **前端小计** | | **~436 行** |
 
 **DB Tables：** `resource_pool`, `eam_bigea_team_members`, `user_profile`
 
-**说明：** 当前系统没有认证/授权中间件。这是一个独立且重要的基础设施模块。建成后其他模块通过 FastAPI Dependency Injection 接入。
+**认证架构（已实现）：**
 
-**FastAPI 特有优势：** 可利用 `Depends()` 机制实现认证中间件，对其他 router 零侵入：
-```python
-# 其他模块只需加一个依赖即可接入认证
-@router.get("", dependencies=[Depends(require_auth)])
 ```
+AUTH_DISABLED=true  → DevAuthProvider（固定 dev_admin 用户，开发模式）
+AUTH_DISABLED=false → KeycloakAuthProvider（JWKS 签名验证，生产模式）
+                      ↓
+              AuthMiddleware → request.state.user
+                      ↓
+              Depends(require_permission("resource", "scope"))
+```
+
+**RBAC 角色体系（4 角色）：**
+
+| 角色 | 旧系统对应 | 说明 |
+|------|-----------|------|
+| `admin` | `_SYS_ADMIN` | 全部权限 `*:*` |
+| `ea_reviewer` | 新增 | 评审流程读写，其余只读 |
+| `editor` | `_SYS_DEVELOPER` | 数据维护读写，评审只读 |
+| `viewer` | `_SYS_BASIC` | 只读 |
+
+**接入状态：** 全部 22 个 router、81 个端点已通过 `Depends(require_permission(...))` 接入 RBAC，对业务代码零侵入。
+
+**待完成：** Keycloak 生产对接（前端 keycloak-js 适配器 + 端到端测试），详见 `plans/buzzing-dancing-mist.md` Phase 5。
 
 ---
 
@@ -177,16 +202,18 @@ EAM 系统采用前后端分离架构：`frontend`（Next.js 15）+ `backend`（
 ### 模块依赖关系图
 
 ```
-    ┌──────────────┐   ┌─────────────────────┐
-    │  D: 用户权限  │   │ F: 通用支持 (日志/导出)│
-    └──────┬───────┘   └──────────┬──────────┘
-           │ Depends()            │ 各模块调用
-    ┌──────┴──────────────────────┴─────────┐
-    │                                       │
-┌───┴────────┐  ┌──────────┐  ┌────────────┴─┐
-│ A: EA Review│←→│E: 基础数据│  │ B: App维护    │
+    ┌──────────────────┐   ┌─────────────────────┐
+    │  D: 用户权限 ✅    │   │ F: 通用支持 (日志/导出)│
+    │  AuthMiddleware   │   └──────────┬──────────┘
+    │  RBAC + Depends() │              │ 各模块调用
+    └──────┬───────────┘   ┌───────────┘
+           │ 81端点已接入    │
+    ┌──────┴───────────────┴───────────┐
+    │                                   │
+┌───┴────────┐  ┌──────────┐  ┌────────┴──────┐
+│ A: EA Review│←→│E: 基础数据│  │ B: App维护     │
 │  (核心流程) │  │ (projects)│  │ (CRUD/MasterData)│
-└───┬────────┘  └──────────┘  └──────┬───────┘
+└───┬────────┘  └──────────┘  └──────┬────────┘
     │ 只读                           │ 数据供给
     ▼                                ▼
 ┌────────────────────────────────────────┐
@@ -201,7 +228,7 @@ EAM 系统采用前后端分离架构：`frontend`（Next.js 15）+ `backend`（
 | A: EA Review 流程核心 | 2,622 行 | ~2,670 行 | ~5,292 行 | 2 人 |
 | B: App Solution 维护 | ~758 行 | ~1,215 行 | ~1,973 行 | 1 人 |
 | C: 业务分析与报表 | ~340 行 | ~4,169 行 | ~4,509 行 | 1 人 |
-| D: 用户与权限 | 381 行 | ~239 行 | ~620 行 | 1 人 |
+| D: 用户与权限 ✅ | ~890 行 | ~436 行 | ~1,326 行 | 1 人 |
 | E: 基础数据与配置 | 643 行 | ~687 行 | ~1,330 行 | 1 人 |
 | F: 通用支持 (日志/导出) | 731 行 | ~146 行 | ~877 行 | D兼管或独立1人 |
 | **共享基础设施** | 175 行 | ~450 行 | ~625 行 | — |
@@ -214,9 +241,10 @@ EAM 系统采用前后端分离架构：`frontend`（Next.js 15）+ `backend`（
 
 | 文件 | 行数 | 说明 |
 |------|------|------|
-| `app/main.py` | 69 | Router 注册、CORS 配置 |
+| `app/main.py` | ~80 | Router 注册、CORS 配置、AuthMiddleware 注册 |
 | `app/database.py` | 26 | 数据库连接池、schema 切换 |
-| `app/config.py` | 15 | 环境变量配置 |
+| `app/config.py` | ~28 | 环境变量配置（含 AUTH_*、KEYCLOAK_* 配置） |
+| `app/auth/` | ~510 | 认证授权模块（models / rbac / providers / middleware / dependencies） |
 | `app/utils/pagination.py` | 34 | 分页参数和响应构建 |
 | `app/utils/filters.py` | 25 | 多值过滤条件构建 |
 | `app/utils/csv_export.py` | 31 | CSV 导出和注入防护 |
@@ -225,9 +253,11 @@ EAM 系统采用前后端分离架构：`frontend`（Next.js 15）+ `backend`（
 
 | 文件/目录 | 说明 |
 |----------|------|
-| `src/lib/api.ts` | 通用 API 客户端（33行） |
-| `src/components/ui/` | 17 个通用 UI 组件 |
-| `src/components/layout/` | 5 个布局组件（Header, Sidebar 等） |
+| `src/lib/api.ts` | 通用 API 客户端 + fetchBlob（~50行，含 authHeaders 自动注入） |
+| `src/lib/auth-context.tsx` | AuthProvider + useAuth / usePermission hooks |
+| `src/lib/auth-token.ts` | Token 管理（getAuthToken / setAuthToken / authHeaders） |
+| `src/components/ui/` | 19 个通用 UI 组件（含 PermissionGate、SearchForm 等） |
+| `src/components/layout/` | 5 个布局组件（Header, Sidebar 含权限过滤等） |
 
 ---
 
@@ -262,12 +292,16 @@ main (受保护, 不可直接 push)
 
 | 文件 | 原因 |
 |------|------|
-| `backend/app/main.py` | Router 注册，新增模块必改 |
+| `backend/app/main.py` | Router 注册 + 中间件注册，新增模块必改 |
+| `backend/app/config.py` | 环境变量，新增配置项必改 |
+| `backend/app/auth/rbac.py` | 权限矩阵，新增资源/角色时需修改 |
 | `backend/app/database.py` | 数据库配置 |
 | `backend/app/utils/*.py` | 共享工具函数 |
-| `frontend/src/lib/api.ts` | API 客户端 |
-| `frontend/src/components/ui/*` | 共享 UI 组件 |
-| `frontend/src/components/layout/*` | 导航菜单 |
+| `frontend/src/lib/api.ts` | API 客户端（含 auth header 注入） |
+| `frontend/src/lib/auth-context.tsx` | Auth Provider，权限判断逻辑 |
+| `frontend/src/lib/constants.ts` | 导航定义 + 权限配置（requiredResource） |
+| `frontend/src/components/ui/*` | 共享 UI 组件（含 PermissionGate） |
+| `frontend/src/components/layout/*` | 导航菜单（Sidebar 含权限过滤） |
 | `docs/schema.prisma` | 数据库模型文档 |
 
 ### 针对 Claude Code 的特别建议
@@ -285,20 +319,20 @@ main (受保护, 不可直接 push)
 
 | 测试类型 | 位置 | 覆盖范围 |
 |---------|------|---------|
-| Python API 测试 | `api-tests/` | 18 个模块，覆盖全部 22 个 backend router |
+| Python API 测试 | `api-tests/` | 19 个模块（含 auth），覆盖全部 23 个 backend router，共 201 个测试 |
 | Playwright E2E | `frontend/e2e/` | 4 个文件：bcpf, bc-visualization, bcm, cmdb |
 | 后端单元测试 | ❌ 不存在 | 需要建设 |
 
 ### 测试优先级
 
-| 优先级 | 内容 | 方式 |
-|-------|------|------|
-| 🔴 P0 | 每次 PR 必须通过 | Python API 测试 + 前端编译检查 |
-| 🔴 P0 | 模块 D 认证中间件 | 先写 API 测试再写代码 (TDD) |
-| 🟡 P1 | 模块 A EA Request 状态机 | API 测试覆盖所有状态转换 |
-| 🟡 P1 | 模块 C 报表数据准确性 | API 测试对比聚合结果 |
-| 🟢 P2 | 前端交互 | Playwright E2E 覆盖关键路径 |
-| 🟢 P2 | 后端单元测试 | 复杂计算逻辑（评分、统计） |
+| 优先级 | 内容 | 方式 | 状态 |
+|-------|------|------|------|
+| 🔴 P0 | 每次 PR 必须通过 | Python API 测试 + 前端编译检查 | — |
+| 🔴 P0 | 模块 D 认证中间件 | API 测试覆盖 auth/me + permissions | ✅ 4 个测试 |
+| 🟡 P1 | 模块 A EA Request 状态机 | API 测试覆盖所有状态转换 | — |
+| 🟡 P1 | 模块 C 报表数据准确性 | API 测试对比聚合结果 | — |
+| 🟢 P2 | 前端交互 | Playwright E2E 覆盖关键路径 | — |
+| 🟢 P2 | 后端单元测试 | 复杂计算逻辑（评分、统计） | — |
 
 ### CI 建议配置
 
@@ -311,11 +345,11 @@ main (受保护, 不可直接 push)
 
 ## 五、Python 后端特有的架构改进建议
 
-### 当前问题
+### 当前状态
 
 1. **无 Model/Schema 层** — `app/models/` 和 `app/schemas/` 目录存在但为空，所有逻辑内联在 router 中
 2. **原始 SQL** — 直接用 `text()` 写 SQL，无 ORM model
-3. **无认证中间件** — 所有 API 完全开放
+3. ~~**无认证中间件**~~ — ✅ 已完成：AuthMiddleware + RBAC + 全部 81 个端点接入 `Depends(require_permission(...))`
 
 ### 建议的渐进式改进
 
@@ -324,12 +358,20 @@ main (受保护, 不可直接 push)
     ↓ 各模块独立推进，不阻塞
 阶段2：抽取 Pydantic schemas 到 app/schemas/（类型安全 + 自动文档）
     ↓
-阶段3：认证中间件 Depends(require_auth)（模块 D 负责）
+阶段3：✅ 已完成 — 认证中间件 + RBAC 权限矩阵 + 前端 PermissionGate
     ↓
 阶段4（可选）：SQLAlchemy ORM models（如果 SQL 维护成本过高）
+    ↓
+阶段5（待做）：Keycloak SSO 生产对接（前端 keycloak-js + 端到端测试）
 ```
 
 **FastAPI 自动文档优势：** 后端启动后访问 `http://localhost:4000/docs` 即可查看所有 API 的 Swagger 文档，无需额外维护。
+
+**权限接入方式：** 各模块 router 通过 `Depends()` 零侵入接入，新增端点只需在装饰器中声明所需资源和 scope：
+```python
+@router.post("", dependencies=[Depends(require_permission("ea_request", "write"))])
+```
+新增资源类型时需修改 `app/auth/rbac.py` 的 `ROLE_PERMISSIONS` 矩阵。
 
 ---
 

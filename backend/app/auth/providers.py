@@ -7,8 +7,10 @@ from __future__ import annotations
 
 import abc
 import logging
+import time
 from typing import Any
 
+import httpx
 from fastapi import Request
 
 from app.auth.models import AuthUser, Role
@@ -61,8 +63,10 @@ class KeycloakAuthProvider(AuthProvider):
         req.user.email = decoded.payload.email;
     """
 
-    def __init__(self) -> None:
-        self._jwks_client: Any | None = None
+    # Cache JWKS keys for 1 hour to avoid hitting Keycloak on every request
+    _jwks_cache: dict[str, Any] = {}
+    _jwks_cache_ts: float = 0
+    _JWKS_TTL: int = 3600  # seconds
 
     async def authenticate(self, request: Request) -> AuthUser | None:
         auth_header = request.headers.get("Authorization", "")
@@ -74,7 +78,8 @@ class KeycloakAuthProvider(AuthProvider):
             return None
 
         try:
-            payload = self._decode_token(token)
+            jwks = await self._fetch_jwks()
+            payload = self._decode_token(token, jwks)
         except Exception as exc:
             raise ValueError(f"Invalid token: {exc}") from exc
 
@@ -96,27 +101,59 @@ class KeycloakAuthProvider(AuthProvider):
 
     # -- helpers --
 
-    def _decode_token(self, token: str) -> dict:
-        """Decode & verify the JWT."""
+    async def _fetch_jwks(self) -> dict[str, Any]:
+        """Fetch JWKS from Keycloak, with in-memory cache."""
+        now = time.monotonic()
+        if self._jwks_cache and (now - self._jwks_cache_ts) < self._JWKS_TTL:
+            return self._jwks_cache
+
+        jwks_url = (
+            f"{settings.KEYCLOAK_SERVER_URL.rstrip('/')}"
+            f"/realms/{settings.KEYCLOAK_REALM}"
+            f"/protocol/openid-connect/certs"
+        )
+        logger.info("Fetching JWKS from %s", jwks_url)
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(jwks_url)
+            resp.raise_for_status()
+            jwks = resp.json()
+
+        KeycloakAuthProvider._jwks_cache = jwks
+        KeycloakAuthProvider._jwks_cache_ts = now
+        return jwks
+
+    def _decode_token(self, token: str, jwks: dict[str, Any]) -> dict:
+        """Decode & verify the JWT against Keycloak JWKS public keys."""
         try:
-            from jose import jwt as jose_jwt
+            from jose import jwt as jose_jwt, jwk as jose_jwk
         except ImportError:
             raise RuntimeError(
                 "python-jose[cryptography] is required for Keycloak auth. "
                 "Install it with: pip install python-jose[cryptography]"
             )
 
-        # For now, decode without verification (matching legacy behaviour).
-        # TODO: add JWKS-based verification for production hardening.
+        # Extract the key-id from the token header
+        unverified_header = jose_jwt.get_unverified_header(token)
+        kid = unverified_header.get("kid")
+
+        # Find the matching public key in the JWKS keyset
+        rsa_key: dict = {}
+        for key_data in jwks.get("keys", []):
+            if key_data.get("kid") == kid:
+                rsa_key = key_data
+                break
+
+        if not rsa_key:
+            raise ValueError(f"No matching JWKS key found for kid={kid}")
+
         payload: dict = jose_jwt.decode(
             token,
-            key="",
+            rsa_key,
+            algorithms=[settings.KEYCLOAK_ALGORITHMS],
             options={
-                "verify_signature": False,
-                "verify_aud": False,
+                "verify_aud": False,   # Keycloak audience varies by client
                 "verify_exp": True,
             },
-            algorithms=[settings.KEYCLOAK_ALGORITHMS],
         )
         return payload
 

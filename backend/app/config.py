@@ -9,7 +9,9 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
 
     # Auth configuration
-    AUTH_DISABLED: bool = True  # Dev mode: skip token validation, use fixed user
+    # SECURITY: defaults to False (auth enabled).  Set AUTH_DISABLED=true in
+    # your .env ONLY for local development.  Never disable in production.
+    AUTH_DISABLED: bool = False
     AUTH_DEV_USER: str = "dev_admin"  # Dev mode: fixed username (itcode)
     AUTH_DEV_ROLE: str = "admin"  # Dev mode: fixed role
 

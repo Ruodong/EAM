@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/locale';
 import { MultiSelect } from '@/components/ui/MultiSelect';
+import { authHeaders } from '@/lib/auth-token';
 
 /* ════════════════════════════════════════════
    Types
@@ -258,7 +259,9 @@ export default function EAReviewDashboard() {
       if (dateRange) { params.set('from', dateRange.from); params.set('to', dateRange.to); }
       if (requestOrg.length > 0) params.set('org', requestOrg.join(','));
       if (requestWt.length > 0) params.set('workerType', requestWt.join(','));
-      const r = await fetch(`/api/ea-requests/dashboard?${params}`);
+      const r = await fetch(`/api/ea-requests/dashboard?${params}`, {
+        headers: { ...authHeaders() },
+      });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       setData(await r.json());
     } catch (e: any) { setError(e.message); }

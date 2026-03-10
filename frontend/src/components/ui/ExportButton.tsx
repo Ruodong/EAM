@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Download } from 'lucide-react';
+import { fetchBlob } from '@/lib/api';
 
 interface ExportButtonProps {
   entity: string;
@@ -20,9 +21,7 @@ export function ExportButton({ entity, label = 'Export CSV', params }: ExportBut
       const query = params && Object.keys(params).length
         ? '?' + new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, v]) => v))).toString()
         : '';
-      const res = await fetch(`${API_BASE}/export/${entity}${query}`);
-      if (!res.ok) throw new Error('Export failed');
-      const blob = await res.blob();
+      const blob = await fetchBlob(`${API_BASE}/export/${entity}${query}`);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
