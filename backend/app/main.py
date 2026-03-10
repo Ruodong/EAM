@@ -3,7 +3,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timezone
 
+from app.auth.middleware import AuthMiddleware
 from app.routers import (
+    auth,
     health,
     projects,
     ea_requests,
@@ -31,6 +33,7 @@ from app.routers import (
 
 app = FastAPI(title="EAM API", version="2.0.0")
 
+# Middleware — order matters: CORS first, then Auth
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -38,9 +41,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(AuthMiddleware)
 
 # Register routers
 app.include_router(health.router, prefix="/api")
+app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(projects.router, prefix="/api/projects", tags=["Projects"])
 app.include_router(ea_requests.router, prefix="/api/ea-requests", tags=["EA Requests"])
 app.include_router(meetings.router, prefix="/api/meetings", tags=["Meetings"])
