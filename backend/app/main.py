@@ -11,6 +11,7 @@ from app.routers import (
     actions,
     schedules,
     applications,
+    bc_visualization,
     bcpf,
     cmdb,
     dashboard,
@@ -46,6 +47,7 @@ app.include_router(meetings.router, prefix="/api/meetings", tags=["Meetings"])
 app.include_router(actions.router, prefix="/api/actions", tags=["Actions"])
 app.include_router(schedules.router, prefix="/api/schedules", tags=["Schedules"])
 app.include_router(applications.router, prefix="/api/applications", tags=["Applications"])
+app.include_router(bc_visualization.router, prefix="/api/applications", tags=["BC Visualization"])
 app.include_router(bcpf.router, prefix="/api/bcpf-master-data", tags=["BCPF"])
 app.include_router(cmdb.router, prefix="/api/cmdb", tags=["CMDB"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
