@@ -33,6 +33,8 @@ interface DashboardData {
   scoreDistribution: { biz_type: string; score: number }[];
   monthlyFirstPass: { month: string; total: number; first_pass: number }[];
   monthlyTopArchitects: { month: string; architect_name: string; project_count: number; rank: number }[];
+  monthlyRequestorReviewerTime: { month: string; count: number; avg_requestor_days: number; avg_reviewer_days: number; avg_action_days: number; avg_pure_reviewer_days: number }[];
+  requestorReviewerTimeSplit: { count: number; avg_requestor_days: number; avg_reviewer_days: number; avg_action_days: number; avg_pure_reviewer_days: number };
 }
 
 /* ════════════════════════════════════════════
@@ -96,10 +98,11 @@ const ORG_PALETTE = ['#a5b4fc', '#fdba74', '#86efac', '#fca5a5', '#7dd3fc', '#fd
    SVG Pie Chart
    ════════════════════════════════════════════ */
 
-function PieChart({ data, size = 160, onSliceClick }: {
+function PieChart({ data, size = 160, onSliceClick, centerLabel = 'TOTAL' }: {
   data: { label: string; value: number; color: string }[];
   size?: number;
   onSliceClick?: (label: string) => void;
+  centerLabel?: string;
 }) {
   const total = data.reduce((s, d) => s + d.value, 0);
   if (total === 0) return <div className="flex items-center justify-center text-xs text-gray-400" style={{ width: size, height: size }}>No data</div>;
@@ -123,7 +126,7 @@ function PieChart({ data, size = 160, onSliceClick }: {
           <title>{d.label}: {d.value} (100%)</title>
         </circle>
         <text x={r} y={r - 6} textAnchor="middle" className="fill-gray-800 text-lg font-bold" fontSize={20} fontWeight={700}>{total}</text>
-        <text x={r} y={r + 12} textAnchor="middle" className="fill-gray-400" fontSize={10}>TOTAL</text>
+        <text x={r} y={r + 12} textAnchor="middle" className="fill-gray-400" fontSize={10}>{centerLabel}</text>
       </svg>
     );
   }
@@ -172,7 +175,7 @@ function PieChart({ data, size = 160, onSliceClick }: {
         </g>
       ))}
       <text x={r} y={r - 6} textAnchor="middle" className="fill-gray-800 text-lg font-bold" fontSize={20} fontWeight={700}>{total}</text>
-      <text x={r} y={r + 12} textAnchor="middle" className="fill-gray-400" fontSize={10}>TOTAL</text>
+      <text x={r} y={r + 12} textAnchor="middle" className="fill-gray-400" fontSize={10}>{centerLabel}</text>
     </svg>
   );
 }
@@ -387,6 +390,10 @@ export default function EAReviewDashboard() {
   const filteredFirstPass = useMemo(() =>
     monthlyBase?.monthlyFirstPass?.filter(m => m.month >= monthCutoff) ?? [], [monthlyBase, monthCutoff]);
 
+  // Requestor vs Reviewer time split (filtered by monthRange)
+  const filteredRRTime = useMemo(() =>
+    monthlyBase?.monthlyRequestorReviewerTime?.filter(m => m.month >= monthCutoff) ?? [], [monthlyBase, monthCutoff]);
+
   // Monthly Architects Workload: avg reviews per architect by month × worker_type × org_group
   const filteredArchOutput = useMemo(() => {
     const raw = monthlyBase?.monthlyOrgTypeTrend?.filter(m => m.month >= monthCutoff) ?? [];
@@ -527,8 +534,8 @@ export default function EAReviewDashboard() {
         </ChartCard>
         </div>
 
-        {/* Row 2: First-Pass Rate */}
-        <div className="mt-4">
+        {/* Row 2: First-Pass Rate + Requestor vs Reviewer Time */}
+        <div className="grid gap-4 lg:grid-cols-2 mt-4">
           <ChartCard title={t('First-Pass Rate')}>
             {(() => {
               const fp = data?.firstPassRate;
@@ -557,6 +564,50 @@ export default function EAReviewDashboard() {
                       >{fp.first_pass_count}</span> / {fp.total_completed} completed requests approved without Return, Meeting or Action
                     </div>
                   </div>
+                </div>
+              );
+            })()}
+          </ChartCard>
+
+          {/* Requestor vs Reviewer Time (Pie Chart - 3 segments) */}
+          <ChartCard title={t('Requestor vs Reviewer Time')}>
+            {(() => {
+              const rr = data?.requestorReviewerTimeSplit;
+              if (!rr || rr.count === 0) return <p className="text-xs text-gray-400 text-center py-8">No data</p>;
+              const reqD = Number(rr.avg_requestor_days) || 0;
+              const actD = Number(rr.avg_action_days) || 0;
+              const pureRevD = Number(rr.avg_pure_reviewer_days) || 0;
+              const pieData = [
+                { label: 'Requestor (Draft)', value: reqD, color: '#3b82f6' },
+                { label: 'Reviewer (Review)', value: pureRevD, color: '#10b981' },
+                { label: 'Requestor (Action)', value: actD, color: '#f59e0b' },
+              ];
+              const total = reqD + pureRevD + actD;
+              const pct = (v: number) => total > 0 ? Math.round((v / total) * 100) : 0;
+              const items = [
+                { color: '#3b82f6', label: 'Requestor', value: reqD, p: pct(reqD), desc: 'Draft + Returned by EA (preparing / revising)' },
+                { color: '#10b981', label: 'Reviewer', value: pureRevD, p: pct(pureRevD), desc: 'EA reviewing / approving (excl. action wait)' },
+                { color: '#f59e0b', label: 'Action Response', value: actD, p: pct(actD), desc: 'Completing actions assigned by EA during review' },
+              ];
+              return (
+                <div className="flex flex-col items-center gap-3">
+                  <PieChart data={pieData} size={130} centerLabel="AVG DAYS" />
+                  <div className="flex flex-col gap-2 w-full">
+                    {items.map(it => (
+                      <div key={it.color} className="flex items-start gap-2 text-xs">
+                        <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0 mt-0.5" style={{ backgroundColor: it.color }} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1">
+                            <span className="text-gray-600 font-medium">{it.label}</span>
+                            <span className="font-semibold text-gray-800">{it.value}d</span>
+                            <span className="text-gray-400">{it.p}%</span>
+                          </div>
+                          <div className="text-[10px] text-gray-400 leading-tight">{it.desc}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-[10px] text-gray-400 italic">{rr.count} completed requests</div>
                 </div>
               );
             })()}
@@ -1471,6 +1522,76 @@ export default function EAReviewDashboard() {
                     </span>
                   ))}
                   <span className="text-gray-400 italic">(projects / month)</span>
+                </div>
+              </>
+            );
+          })()}
+        </ChartCard>
+
+        {/* Chart 10: Monthly Requestor vs Reviewer Time (Stacked Bar - 3 segments) */}
+        <ChartCard title={t('Monthly Requestor vs Reviewer Time')}>
+          {filteredRRTime.length === 0 ? (
+            <p className="text-xs text-gray-400 text-center py-8">No data</p>
+          ) : (() => {
+            const maxTotal = Math.max(...filteredRRTime.map(m =>
+              (Number(m.avg_requestor_days) || 0) + (Number(m.avg_pure_reviewer_days) || 0) + (Number(m.avg_action_days) || 0)
+            ), 1);
+            return (
+              <>
+                <div className="flex items-end gap-1" style={{ height: 160 }}>
+                  {filteredRRTime.map((m) => {
+                    const reqD = Number(m.avg_requestor_days) || 0;
+                    const actD = Number(m.avg_action_days) || 0;
+                    const pureRevD = Number(m.avg_pure_reviewer_days) || 0;
+                    const total = reqD + pureRevD + actD;
+                    const barH = Math.max((total / maxTotal) * 130, 4);
+                    const reqH = total > 0 ? (reqD / total) * barH : 0;
+                    const actH = total > 0 ? (actD / total) * barH : 0;
+                    const revH = total > 0 ? (pureRevD / total) * barH : 0;
+                    return (
+                      <div key={m.month} className="flex-1 flex flex-col items-center gap-0.5">
+                        <div className="text-[7px] text-gray-400 whitespace-nowrap">{total > 0 ? total.toFixed(1) : 0}d</div>
+                        <div className="w-full flex items-end justify-center" style={{ height: 120 }}>
+                          <div className="w-3/4 flex flex-col items-stretch">
+                            {/* Reviewer (top) */}
+                            {revH > 0 && (
+                              <div className="rounded-t flex items-center justify-center hover:opacity-80"
+                                style={{ height: Math.max(revH, 2), backgroundColor: '#10b981' }}
+                                title={`Reviewer: ${pureRevD}d`}>
+                                {revH >= 14 && <span className="text-[8px] font-semibold text-white">{pureRevD}d</span>}
+                              </div>
+                            )}
+                            {/* Action Response (middle) */}
+                            {actH > 0 && (
+                              <div className={`${revH <= 0 ? 'rounded-t' : ''} flex items-center justify-center hover:opacity-80`}
+                                style={{ height: Math.max(actH, 2), backgroundColor: '#f59e0b' }}
+                                title={`Action Response: ${actD}d`}>
+                                {actH >= 14 && <span className="text-[8px] font-semibold text-white">{actD}d</span>}
+                              </div>
+                            )}
+                            {/* Requestor (bottom) */}
+                            {reqH > 0 && (
+                              <div className={`${revH <= 0 && actH <= 0 ? 'rounded-t' : ''} rounded-b flex items-center justify-center hover:opacity-80`}
+                                style={{ height: Math.max(reqH, 2), backgroundColor: '#3b82f6' }}
+                                title={`Requestor: ${reqD}d`}>
+                                {reqH >= 14 && <span className="text-[8px] font-semibold text-white">{reqD}d</span>}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-[7px] text-gray-400">{m.count} req</span>
+                        <span className="text-[8px] text-gray-400">{formatMonth(m.month)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Legend */}
+                <div className="flex items-center justify-center gap-3 mt-2 text-[10px] text-gray-500 flex-wrap">
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#3b82f6' }} /> Requestor</span>
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#f59e0b' }} /> Action</span>
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#10b981' }} /> Reviewer</span>
+                  <span className="text-gray-300">|</span>
+                  <span className="text-[9px] text-gray-400 italic">avg days per request</span>
                 </div>
               </>
             );

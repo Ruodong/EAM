@@ -38,7 +38,7 @@ The system is organized into 5 functional modules + 1 shared support layer:
 |--------|-------|---------|----------|
 | **A: EA Review** | Review workflow, meetings, actions, calendar | 2,622 lines | ~2,670 lines |
 | **B: App Solution** | BCM, CMDB, BCPF, tech stack (CRUD) | ~758 lines | ~1,215 lines |
-| **C: Reports** | Dashboard, EA review reports, BC visualization | ~340 lines | ~4,169 lines |
+| **C: Reports** | Dashboard, EA review reports, BC visualization, Requestor/Reviewer/Action time analysis | ~340 lines | ~4,169 lines |
 | **D: Auth & Users** | RBAC, SSO, team members, resources | ~890 lines | ~436 lines |
 | **E: Config & Data** | Master data, projects, certifications, dict options | 643 lines | ~687 lines |
 | **F: Shared Services** | Audit log, export, email log | 731 lines | ~146 lines |
@@ -61,7 +61,7 @@ For detailed module boundaries, dependencies, and collaboration guidelines, see 
 | `/app-management/bcpf` | Business Capability Framework |
 | `/app-management/bcm` | Business Capability Mapping |
 | `/app-management/bc-visualization` | BC Analysis & MindMap |
-| `/reports/ea-review-dashboard` | EA Review Analytics (6 sub-pages) |
+| `/reports/ea-review-dashboard` | EA Review Analytics (request summary, review time decomposition, monthly trends) |
 | `/reports/lead-time` | Lead Time Report |
 | `/reports/email-log` | Email Log |
 | `/settings/*` | Team Members, Audit Log, Scope Config |

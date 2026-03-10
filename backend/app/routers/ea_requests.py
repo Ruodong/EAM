@@ -655,6 +655,148 @@ async def dashboard(
             dp,
         )
 
+        # 18. Monthly Requestor vs Reviewer time split (with action breakdown)
+        monthly_rr_time = await _q(
+            f"WITH events AS ( "
+            f"  SELECT r.request_id, 'Created' AS action, r.create_at AS event_at "
+            f"  FROM eam.eam_request r "
+            f"  WHERE r.status = 'Completed' AND {date_where}{org_filter}{wt_filter} "
+            f"  UNION ALL "
+            f"  SELECT l.request_id, l.action, l.create_at "
+            f"  FROM eam.eam_request_process_log l "
+            f"  JOIN eam.eam_request r ON r.request_id = l.request_id "
+            f"  WHERE r.status = 'Completed' AND {r_date_where}{r_org_filter}{r_wt_filter} "
+            f"), "
+            f"timeline AS ( "
+            f"  SELECT request_id, action, event_at, "
+            f"    LEAD(event_at) OVER (PARTITION BY request_id ORDER BY event_at) AS next_at "
+            f"  FROM events "
+            f"), "
+            f"phases AS ( "
+            f"  SELECT request_id, action, event_at, next_at, "
+            f"    EXTRACT(EPOCH FROM (next_at - event_at)) / 86400.0 AS days, "
+            f"    CASE WHEN action IN ('Created','Returned by EA') THEN 'requestor' "
+            f"         WHEN action IN ('Submitted','Accepted by EA') THEN 'reviewer' END AS owner "
+            f"  FROM timeline WHERE next_at IS NOT NULL "
+            f"), "
+            f"per_req AS ( "
+            f"  SELECT request_id, MIN(event_at) AS created, "
+            f"    SUM(CASE WHEN owner='requestor' THEN days ELSE 0 END) AS req_days, "
+            f"    SUM(CASE WHEN owner='reviewer' THEN days ELSE 0 END) AS rev_days "
+            f"  FROM phases GROUP BY request_id "
+            f"), "
+            f"reviewer_phases AS ( "
+            f"  SELECT request_id, event_at AS phase_start, next_at AS phase_end "
+            f"  FROM phases WHERE owner = 'reviewer' "
+            f"), "
+            f"action_clips AS ( "
+            f"  SELECT a.request_id, rp.phase_start, rp.phase_end, "
+            f"    GREATEST(a.open_date, rp.phase_start) AS clip_start, "
+            f"    LEAST(COALESCE(a.close_date, rp.phase_end), rp.phase_end) AS clip_end "
+            f"  FROM eam.eam_actions a "
+            f"  JOIN reviewer_phases rp ON a.request_id = rp.request_id "
+            f"  WHERE a.open_date IS NOT NULL "
+            f"    AND a.open_date < rp.phase_end "
+            f"    AND COALESCE(a.close_date, rp.phase_end) > rp.phase_start "
+            f"), "
+            f"phase_action_coverage AS ( "
+            f"  SELECT request_id, phase_start, phase_end, "
+            f"    EXTRACT(EPOCH FROM ( "
+            f"      LEAST(MAX(clip_end), phase_end) - GREATEST(MIN(clip_start), phase_start) "
+            f"    )) / 86400.0 AS coverage_days "
+            f"  FROM action_clips WHERE clip_start < clip_end "
+            f"  GROUP BY request_id, phase_start, phase_end "
+            f"), "
+            f"per_req_action AS ( "
+            f"  SELECT request_id, "
+            f"    SUM(GREATEST(0, coverage_days)) AS action_days "
+            f"  FROM phase_action_coverage "
+            f"  GROUP BY request_id "
+            f") "
+            f"SELECT TO_CHAR(pr.created, 'YYYY-MM') AS month, "
+            f"  COUNT(*)::int AS count, "
+            f"  ROUND(AVG(pr.req_days)::numeric, 1) AS avg_requestor_days, "
+            f"  ROUND(AVG(pr.rev_days)::numeric, 1) AS avg_reviewer_days, "
+            f"  ROUND(AVG(COALESCE(pa.action_days, 0))::numeric, 1) AS avg_action_days, "
+            f"  ROUND(AVG(pr.rev_days - COALESCE(pa.action_days, 0))::numeric, 1) AS avg_pure_reviewer_days "
+            f"FROM per_req pr "
+            f"LEFT JOIN per_req_action pa ON pr.request_id = pa.request_id "
+            f"GROUP BY TO_CHAR(pr.created, 'YYYY-MM') ORDER BY month",
+            dp,
+        )
+
+        # 19. Overall Requestor vs Reviewer time split (for pie chart, with action breakdown)
+        rr_split_rows = await _q(
+            f"WITH events AS ( "
+            f"  SELECT r.request_id, 'Created' AS action, r.create_at AS event_at "
+            f"  FROM eam.eam_request r "
+            f"  WHERE r.status = 'Completed' AND {date_where}{org_filter}{wt_filter} "
+            f"  UNION ALL "
+            f"  SELECT l.request_id, l.action, l.create_at "
+            f"  FROM eam.eam_request_process_log l "
+            f"  JOIN eam.eam_request r ON r.request_id = l.request_id "
+            f"  WHERE r.status = 'Completed' AND {r_date_where}{r_org_filter}{r_wt_filter} "
+            f"), "
+            f"timeline AS ( "
+            f"  SELECT request_id, action, event_at, "
+            f"    LEAD(event_at) OVER (PARTITION BY request_id ORDER BY event_at) AS next_at "
+            f"  FROM events "
+            f"), "
+            f"phases AS ( "
+            f"  SELECT request_id, action, event_at, next_at, "
+            f"    EXTRACT(EPOCH FROM (next_at - event_at)) / 86400.0 AS days, "
+            f"    CASE WHEN action IN ('Created','Returned by EA') THEN 'requestor' "
+            f"         WHEN action IN ('Submitted','Accepted by EA') THEN 'reviewer' END AS owner "
+            f"  FROM timeline WHERE next_at IS NOT NULL "
+            f"), "
+            f"per_req AS ( "
+            f"  SELECT request_id, "
+            f"    SUM(CASE WHEN owner='requestor' THEN days ELSE 0 END) AS req_days, "
+            f"    SUM(CASE WHEN owner='reviewer' THEN days ELSE 0 END) AS rev_days "
+            f"  FROM phases GROUP BY request_id "
+            f"), "
+            f"reviewer_phases AS ( "
+            f"  SELECT request_id, event_at AS phase_start, next_at AS phase_end "
+            f"  FROM phases WHERE owner = 'reviewer' "
+            f"), "
+            f"action_clips AS ( "
+            f"  SELECT a.request_id, rp.phase_start, rp.phase_end, "
+            f"    GREATEST(a.open_date, rp.phase_start) AS clip_start, "
+            f"    LEAST(COALESCE(a.close_date, rp.phase_end), rp.phase_end) AS clip_end "
+            f"  FROM eam.eam_actions a "
+            f"  JOIN reviewer_phases rp ON a.request_id = rp.request_id "
+            f"  WHERE a.open_date IS NOT NULL "
+            f"    AND a.open_date < rp.phase_end "
+            f"    AND COALESCE(a.close_date, rp.phase_end) > rp.phase_start "
+            f"), "
+            f"phase_action_coverage AS ( "
+            f"  SELECT request_id, phase_start, phase_end, "
+            f"    EXTRACT(EPOCH FROM ( "
+            f"      LEAST(MAX(clip_end), phase_end) - GREATEST(MIN(clip_start), phase_start) "
+            f"    )) / 86400.0 AS coverage_days "
+            f"  FROM action_clips WHERE clip_start < clip_end "
+            f"  GROUP BY request_id, phase_start, phase_end "
+            f"), "
+            f"per_req_action AS ( "
+            f"  SELECT request_id, "
+            f"    SUM(GREATEST(0, coverage_days)) AS action_days "
+            f"  FROM phase_action_coverage "
+            f"  GROUP BY request_id "
+            f") "
+            f"SELECT COUNT(*)::int AS count, "
+            f"  ROUND(AVG(pr.req_days)::numeric, 1) AS avg_requestor_days, "
+            f"  ROUND(AVG(pr.rev_days)::numeric, 1) AS avg_reviewer_days, "
+            f"  ROUND(AVG(COALESCE(pa.action_days, 0))::numeric, 1) AS avg_action_days, "
+            f"  ROUND(AVG(pr.rev_days - COALESCE(pa.action_days, 0))::numeric, 1) AS avg_pure_reviewer_days "
+            f"FROM per_req pr "
+            f"LEFT JOIN per_req_action pa ON pr.request_id = pa.request_id",
+            dp,
+        )
+        rr_time_split = rr_split_rows[0] if rr_split_rows else {
+            "count": 0, "avg_requestor_days": 0, "avg_reviewer_days": 0,
+            "avg_action_days": 0, "avg_pure_reviewer_days": 0
+        }
+
         total = sum(r.get("count", 0) for r in status_counts)
 
         return {
@@ -675,6 +817,8 @@ async def dashboard(
             "scoreDistribution": score_distribution,
             "monthlyFirstPass": monthly_first_pass,
             "monthlyTopArchitects": monthly_top_architects,
+            "monthlyRequestorReviewerTime": monthly_rr_time,
+            "requestorReviewerTimeSplit": rr_time_split,
             "recentRequests": recent_requests,
         }
     except Exception as e:
